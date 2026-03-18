@@ -5,13 +5,12 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Dashboard — Chamados N1 em Aberto (SLA 48h)</title>
 
-  <!-- Online (CDN). Se bloquear, troque por: <script src="xlsx.full.min.js"></script> -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
   <style>
     :root{
       --bg:#0b0f14; --card:#111827; --muted:#94a3b8; --text:#e5e7eb; --line:#1f2937;
-      --good:#22c55e; --warn:#f59e0b; --bad:#ef4444; --accent:#f43f5e;
+      --good:#22c55e; --warn:#f59e0b; --bad:#ef4444; --accent:#f43f5e; --soft:#64748b;
     }
     *{box-sizing:border-box}
     body{
@@ -32,7 +31,8 @@
       box-shadow: 0 8px 20px rgba(0,0,0,.25);
     }
     .uploader{flex:1 1 520px; min-height:120px; display:flex; gap:14px; align-items:center; justify-content:space-between; position:relative;}
-    .drop{flex:1; border:1px dashed rgba(148,163,184,.45); border-radius:14px; padding:14px; background: rgba(255,255,255,.02);}
+    .drop{flex:1; border:1px dashed rgba(148,163,184,.45); border-radius:14px; padding:14px; background: rgba(255,255,255,.02); cursor:pointer; transition:.18s border-color, .18s background;}
+    .drop:hover{background:rgba(255,255,255,.03)}
     .drop strong{display:block; margin-bottom:6px}
     .drop span{color:var(--muted); font-size:12px}
     .btn{background:var(--accent); color:white; border:none; padding:10px 12px; border-radius:12px; cursor:pointer; font-weight:700; font-size:13px; white-space:nowrap;}
@@ -45,9 +45,9 @@
     .kpi .label{color:var(--muted); font-size:12px}
     .kpi .value{font-size:22px; margin-top:6px; font-weight:900}
 
-    .pill{display:inline-flex; align-items:center; gap:8px; font-size:12px; padding:6px 10px; border-radius:999px; border:1px solid var(--line); background: rgba(255,255,255,.02); color:var(--muted);}
-    .dot{width:8px; height:8px; border-radius:50%}
-    .dot.good{background:var(--good)} .dot.warn{background:var(--warn)} .dot.bad{background:var(--bad)}
+    .pill{display:inline-flex; align-items:center; gap:8px; font-size:12px; padding:6px 10px; border-radius:999px; border:1px solid var(--line); background: rgba(255,255,255,.02); color:var(--muted); flex-wrap:wrap;}
+    .dot{width:8px; height:8px; border-radius:50%; display:inline-block}
+    .dot.good{background:var(--good)} .dot.warn{background:var(--warn)} .dot.bad{background:var(--bad)} .dot.soft{background:var(--soft)}
 
     .filters{display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end;}
     .field{display:flex; flex-direction:column; gap:6px; min-width:200px;}
@@ -62,15 +62,14 @@
     .mini .line:last-child{border-bottom:none}
 
     table{width:100%; border-collapse:separate; border-spacing:0; overflow:hidden; border-radius:14px; border:1px solid var(--line);}
-    thead th{ text-align:left; font-size:12px; color:var(--muted); padding:10px; border-bottom:1px solid var(--line); background: rgba(255,255,255,.02);}
+    thead th{ text-align:left; font-size:12px; color:var(--muted); padding:10px; border-bottom:1px solid var(--line); background: rgba(255,255,255,.02); position:sticky; top:0;}
     tbody td{ padding:10px; border-bottom:1px solid rgba(31,41,55,.8); font-size:13px; vertical-align:top;}
     tbody tr:last-child td{border-bottom:none}
     .right{text-align:right}
     .status{font-weight:800; padding:6px 8px; border-radius:12px; display:inline-block; border:1px solid var(--line); background: rgba(255,255,255,.02); font-size:12px;}
-    .status.good{color:var(--good)} .status.warn{color:var(--warn)} .status.bad{color:var(--bad)}
+    .status.good{color:var(--good)} .status.warn{color:var(--warn)} .status.bad{color:var(--bad)} .status.soft{color:var(--soft)}
     .muted{color:var(--muted)}
 
-    /* loading overlay */
     .overlay{position:absolute; inset:0; display:none; align-items:center; justify-content:center; backdrop-filter: blur(4px); background: rgba(0,0,0,.35); border-radius:16px; z-index:10;}
     .overlay.show{display:flex}
     .spinner{width:22px; height:22px; border:3px solid rgba(255,255,255,.25); border-top-color: rgba(255,255,255,.9); border-radius:50%; animation: spin .9s linear infinite;}
@@ -81,16 +80,15 @@
     @media (max-width: 980px){
       .kpis{grid-template-columns: repeat(2, minmax(160px, 1fr));}
       .grid{grid-template-columns: 1fr;}
+      .uploader{flex-direction:column; align-items:stretch}
     }
   </style>
 </head>
-
 <body>
 <header>
   <h1>Dashboard — Chamados N1 em Aberto (SLA 48h)</h1>
   <p class="sub">
-    Funciona com planilha “grande” (muitas colunas): o sistema encontra o cabeçalho automaticamente e usa só:
-    Nº, Ponto, Endereço, Ambiente, Praça, Área de Trabalho, Nível, Data de Criação.
+    Detecta o cabeçalho automaticamente, procura a melhor aba disponível e usa só as colunas necessárias.
   </p>
 </header>
 
@@ -108,9 +106,9 @@
         </div>
       </div>
 
-      <div class="drop" id="dropZone">
+      <div class="drop" id="dropZone" role="button" tabindex="0" aria-label="Selecionar planilha">
         <strong>Arraste e solte a planilha aqui</strong>
-        <span>ou clique em “Selecionar arquivo”. Aceita .xlsx</span>
+        <span>ou clique em “Selecionar arquivo”. Aceita .xlsx, .xls e .xlsm</span>
         <div class="note" id="fileInfo">Nenhum arquivo carregado.</div>
         <div class="note" id="debugInfo" style="display:none;"></div>
       </div>
@@ -118,11 +116,12 @@
       <div style="display:flex; flex-direction:column; gap:10px; align-items:flex-end;">
         <button class="btn" id="pickBtn">Selecionar arquivo</button>
         <button class="btn secondary" id="resetBtn">Limpar</button>
-        <input type="file" id="fileInput" accept=".xlsx,.xls" />
+        <input type="file" id="fileInput" accept=".xlsx,.xls,.xlsm" />
         <div class="pill">
           <span class="dot good"></span> Dentro &lt; 36h
           <span class="dot warn"></span> Próximo 36–48h
           <span class="dot bad"></span> Estourado ≥ 48h
+          <span class="dot soft"></span> Sem data
         </div>
       </div>
     </div>
@@ -154,7 +153,7 @@
 
       <div class="field" style="min-width:280px;">
         <label for="searchInput">Buscar (Ponto / Endereço / Nº)</label>
-        <input id="searchInput" type="text" placeholder="ex: 'Uruguaiana' ou 'Av. Paulista' ou 1247543" disabled />
+        <input id="searchInput" type="text" placeholder="ex: Uruguaiana, Av. Paulista ou 1247543" disabled />
       </div>
 
       <div class="field" style="min-width:240px;">
@@ -176,7 +175,7 @@
 
   <section class="card">
     <h2 style="margin:0 0 10px; font-size:16px;">Detalhamento (linhas filtradas)</h2>
-    <div style="overflow:auto;">
+    <div style="overflow:auto; max-height:60vh;">
       <table>
         <thead>
           <tr>
@@ -196,33 +195,34 @@
         </tbody>
       </table>
     </div>
-    <div class="note muted">Mostra até 500 linhas para performance (use filtros/busca).</div>
+    <div class="note muted">Mostra até 500 linhas para performance. O cálculo de SLA é atualizado sempre que a tela é renderizada.</div>
   </section>
 </main>
 
 <script>
-  // ===== CONFIG =====
   const SLA_HOURS = 48;
   const WARN_FROM_HOURS = 36;
+  const REFRESH_MS = 60 * 1000;
 
-  // Colunas que vamos usar (as demais serão ignoradas)
-  const EXPECTED = {
-    numero: "Nº",
-    ponto: "Ponto",
-    endereco: "Endereço",
-    ambiente: "Ambiente",
-    praca: "Praça",
-    area: "Área de Trabalho",
-    nivel: "Nível",
-    criacao: "Data de Criação"
+  const COLS = {
+    numero: ["nº", "no", "numero", "número", "n°", "os", "ordem", "id"],
+    ponto: ["ponto", "local", "nome do ponto"],
+    endereco: ["endereço", "endereco", "logradouro", "rua"],
+    ambiente: ["ambiente"],
+    praca: ["praça", "praca", "cidade", "regional"],
+    area: ["área de trabalho", "area de trabalho", "área", "area"],
+    nivel: ["nível", "nivel", "n1/n2/n3", "level"],
+    criacao: ["data de criação", "data de criacao", "abertura", "data abertura", "data de abertura", "criação", "criacao"]
   };
-  const REQUIRED_COLS = Object.values(EXPECTED);
 
-  // ===== HELPERS =====
   const $ = (id) => document.getElementById(id);
   const normStr = (v)=> (v ?? "").toString().trim();
-  const normKey = (s)=> normStr(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\s+/g," ");
+  const normKey = (s)=> normStr(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\s+/g," ").trim();
   const yieldToUI = ()=> new Promise(r=>setTimeout(r,0));
+
+  let rowsAll = [];
+  let rowsFiltered = [];
+  let refreshTimer = null;
 
   function setLoading(on, msg="Lendo arquivo", prog=null){
     $("overlay").classList.toggle("show", !!on);
@@ -244,90 +244,175 @@
   function hoursDiff(fromDate, toDate){
     return (toDate.getTime() - fromDate.getTime()) / 36e5;
   }
-  function slaBucket(h){
-    if (h < WARN_FROM_HOURS) return "Dentro do SLA";
-    if (h < SLA_HOURS) return "Próximo do vencimento";
+
+  function getBucket(hours){
+    if (hours == null) return "Sem data";
+    if (hours < WARN_FROM_HOURS) return "Dentro do SLA";
+    if (hours < SLA_HOURS) return "Próximo do vencimento";
     return "Estourado";
   }
+
   function fmtDate(d){
     if (!d) return "—";
-    const pad=n=>String(n).padStart(2,"0");
-    return `${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    return new Intl.DateTimeFormat("pt-BR", {
+      day:"2-digit", month:"2-digit", year:"numeric",
+      hour:"2-digit", minute:"2-digit"
+    }).format(d);
   }
+
   function escapeHtml(str){
-    return normStr(str).replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;")
-      .replaceAll('"',"&quot;").replaceAll("'","&#039;");
+    return normStr(str)
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&#039;");
   }
+
   function statusClass(s){
-    if (s==="Dentro do SLA") return "good";
-    if (s==="Próximo do vencimento") return "warn";
-    if (s==="Estourado") return "bad";
-    return "";
+    if (s === "Dentro do SLA") return "good";
+    if (s === "Próximo do vencimento") return "warn";
+    if (s === "Estourado") return "bad";
+    return "soft";
   }
-  function unique(arr){ return Array.from(new Set(arr.filter(v=>normStr(v)!==""))); }
-  function populateFilter(sel, values, allLabel){
-    sel.innerHTML="";
-    const o=document.createElement("option"); o.value=""; o.textContent=allLabel; sel.appendChild(o);
-    values.forEach(v=>{ const op=document.createElement("option"); op.value=v; op.textContent=v; sel.appendChild(op); });
+
+  function unique(arr){
+    return Array.from(new Set(arr.filter(v=>normStr(v)!=="")));
   }
+
+  function populateFilter(sel, values, allLabel, keepValue = ""){
+    sel.innerHTML = "";
+    const o = document.createElement("option");
+    o.value = "";
+    o.textContent = allLabel;
+    sel.appendChild(o);
+    values.forEach(v => {
+      const op = document.createElement("option");
+      op.value = v;
+      op.textContent = v;
+      sel.appendChild(op);
+    });
+    if (["", ...values].includes(keepValue)) sel.value = keepValue;
+  }
+
   function groupBy(arr, keyFn){
-    const m=new Map();
-    for (const x of arr){ const k=keyFn(x); if(!m.has(k)) m.set(k,[]); m.get(k).push(x); }
+    const m = new Map();
+    for (const x of arr){
+      const k = keyFn(x);
+      if (!m.has(k)) m.set(k, []);
+      m.get(k).push(x);
+    }
     return m;
   }
 
   function parseDateCell(val){
-    if (!val) return null;
+    if (val == null || val === "") return null;
     if (val instanceof Date && !isNaN(val)) return val;
 
     if (typeof val === "number" && typeof XLSX !== "undefined"){
       const o = XLSX.SSF.parse_date_code(val);
       if (!o) return null;
-      return new Date(o.y, o.m-1, o.d, o.H, o.M, o.S);
+      return new Date(o.y, o.m - 1, o.d, o.H || 0, o.M || 0, o.S || 0);
     }
 
     const s = normStr(val);
-    const m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
-    if (m){
-      const dd = parseInt(m[1],10), mm = parseInt(m[2],10)-1, yy = parseInt(m[3],10);
-      const yyyy = (yy<100)?(2000+yy):yy;
-      const HH = m[4]?parseInt(m[4],10):0;
-      const MM = m[5]?parseInt(m[5],10):0;
-      const SS = m[6]?parseInt(m[6],10):0;
+    const br = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
+    if (br){
+      const dd = parseInt(br[1], 10);
+      const mm = parseInt(br[2], 10) - 1;
+      const yy = parseInt(br[3], 10);
+      const yyyy = yy < 100 ? 2000 + yy : yy;
+      const HH = br[4] ? parseInt(br[4], 10) : 0;
+      const MM = br[5] ? parseInt(br[5], 10) : 0;
+      const SS = br[6] ? parseInt(br[6], 10) : 0;
       const d = new Date(yyyy, mm, dd, HH, MM, SS);
       return isNaN(d) ? null : d;
     }
 
-    const d2 = new Date(s);
-    return isNaN(d2) ? null : d2;
+    const iso = new Date(s);
+    return isNaN(iso) ? null : iso;
   }
 
-  // Detecta qual linha tem o cabeçalho (para planilhas com título no topo)
-  function detectHeaderRow(ws, requiredCols, maxRows=60){
-    // Lê as primeiras linhas como matriz (array-of-arrays)
-    const aoa = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "", raw: true, range: 0 });
-    const reqNorm = requiredCols.map(c => normKey(c));
-    const limit = Math.min(maxRows, aoa.length);
-
-    for (let r = 0; r < limit; r++){
-      const row = aoa[r] || [];
-      const present = new Set(row.map(x => normKey(x)));
-      // precisa ter pelo menos 6 das colunas (pra evitar falso positivo)
-      let hits = 0;
-      for (const c of reqNorm) if (present.has(c)) hits++;
-      if (hits >= 6) return r; // 0-based
+  function scoreHeaderRow(row){
+    const normalized = row.map(normKey);
+    let score = 0;
+    for (const aliases of Object.values(COLS)){
+      if (aliases.some(a => normalized.includes(normKey(a)))) score += 1;
     }
-    return 0; // fallback
+    return score;
   }
 
-  // ===== STATE =====
-  let rowsAll = [];
-  let rowsFiltered = [];
+  function detectHeaderRow(ws, maxRows = 80){
+    const aoa = XLSX.utils.sheet_to_json(ws, { header:1, defval:"", raw:true, range:0 });
+    const limit = Math.min(maxRows, aoa.length);
+    let best = { row: 0, score: -1 };
+    for (let r = 0; r < limit; r++){
+      const score = scoreHeaderRow(aoa[r] || []);
+      if (score > best.score) best = { row: r, score };
+    }
+    return best;
+  }
 
-  // ===== UI =====
+  function mapColumns(headers){
+    const out = {};
+    const normalized = headers.map(normKey);
+    for (const [key, aliases] of Object.entries(COLS)){
+      const idx = normalized.findIndex(h => aliases.some(a => h === normKey(a)));
+      if (idx >= 0) out[key] = headers[idx];
+    }
+    return out;
+  }
+
+  function chooseBestSheet(wb){
+    let best = null;
+    for (const name of wb.SheetNames){
+      const ws = wb.Sheets[name];
+      const headerInfo = detectHeaderRow(ws, 80);
+      const json = XLSX.utils.sheet_to_json(ws, { defval:null, raw:true, range:headerInfo.row });
+      const headers = Object.keys(json[0] || {});
+      const mapping = mapColumns(headers);
+      const requiredHits = Object.keys(mapping).length;
+      const rows = json.length;
+      const score = requiredHits * 1000 + rows;
+      if (!best || score > best.score){
+        best = { name, ws, headerRow: headerInfo.row, headerScore: headerInfo.score, mapping, headers, rows, score };
+      }
+    }
+    return best;
+  }
+
+  function startAutoRefresh(){
+    stopAutoRefresh();
+    refreshTimer = setInterval(() => {
+      if (rowsAll.length) applyFiltersAndRender({ keepFilterOptions: true });
+    }, REFRESH_MS);
+  }
+
+  function stopAutoRefresh(){
+    if (refreshTimer){
+      clearInterval(refreshTimer);
+      refreshTimer = null;
+    }
+  }
+
+  function debounce(fn, wait = 180){
+    let t = null;
+    return (...args) => {
+      clearTimeout(t);
+      t = setTimeout(() => fn(...args), wait);
+    };
+  }
+
   const fileInput = $("fileInput");
   $("pickBtn").addEventListener("click", ()=> fileInput.click());
   $("resetBtn").addEventListener("click", resetAll);
+  $("dropZone").addEventListener("click", ()=> fileInput.click());
+  $("dropZone").addEventListener("keydown", (e)=>{
+    if (e.key === "Enter" || e.key === " "){
+      e.preventDefault();
+      fileInput.click();
+    }
+  });
 
   fileInput.addEventListener("change", (e)=>{
     const f = e.target.files && e.target.files[0];
@@ -337,42 +422,45 @@
   const dropZone = $("dropZone");
   ["dragenter","dragover"].forEach(evt => dropZone.addEventListener(evt, (e)=>{
     e.preventDefault(); e.stopPropagation();
-    dropZone.style.borderColor="rgba(244,63,94,.8)";
+    dropZone.style.borderColor = "rgba(244,63,94,.8)";
   }));
   ["dragleave","drop"].forEach(evt => dropZone.addEventListener(evt, (e)=>{
     e.preventDefault(); e.stopPropagation();
-    dropZone.style.borderColor="rgba(148,163,184,.45)";
+    dropZone.style.borderColor = "rgba(148,163,184,.45)";
   }));
   dropZone.addEventListener("drop", (e)=>{
     const f = e.dataTransfer.files && e.dataTransfer.files[0];
     if (f) handleFile(f);
   });
 
-  ["pracaSelect","ambienteSelect","areaSelect"].forEach(id => $(id).addEventListener("change", applyFiltersAndRender));
-  $("searchInput").addEventListener("input", applyFiltersAndRender);
-
+  ["pracaSelect","ambienteSelect","areaSelect"].forEach(id => $(id).addEventListener("change", ()=> applyFiltersAndRender()));
+  $("searchInput").addEventListener("input", debounce(() => applyFiltersAndRender()));
   $("exportDetalhadoBtn").addEventListener("click", exportDetalhadoXlsx);
   $("exportResumoBtn").addEventListener("click", exportResumoPracaXlsx);
 
   function resetAll(){
-    rowsAll = []; rowsFiltered = [];
+    stopAutoRefresh();
+    rowsAll = [];
+    rowsFiltered = [];
     fileInput.value = "";
     $("fileInfo").textContent = "Nenhum arquivo carregado.";
     $("debugInfo").style.display = "none";
+    $("pracaSelect").value = "";
+    $("ambienteSelect").value = "";
+    $("areaSelect").value = "";
+    $("searchInput").value = "";
     disableFilters(true);
     renderAll();
   }
 
-  // ===== CORE =====
   async function handleFile(file){
     if (typeof XLSX === "undefined"){
-      alert("A biblioteca XLSX não carregou. Se a internet/CDN está bloqueada, use a versão offline (xlsx.full.min.js local).");
+      alert("A biblioteca XLSX não carregou. Se a internet/CDN estiver bloqueada, use uma cópia local do xlsx.full.min.js.");
       return;
     }
 
     $("fileInfo").textContent = `Carregado: ${file.name}`;
     $("debugInfo").style.display = "none";
-
     setLoading(true, "Lendo arquivo", 0);
 
     try{
@@ -380,89 +468,60 @@
       setLoading(true, "Abrindo planilha", 15);
 
       const wb = XLSX.read(buffer, { type:"array", cellDates:true });
-      const ws = wb.Sheets[wb.SheetNames[0]];
+      const best = chooseBestSheet(wb);
 
-      // Detectar a linha de cabeçalho automaticamente
-      const headerRow = detectHeaderRow(ws, REQUIRED_COLS, 80);
-
-      // Agora lê a planilha começando no cabeçalho encontrado
-      const json = XLSX.utils.sheet_to_json(ws, { defval:null, raw:true, range: headerRow });
-
-      if (!json || !json.length){
-        setLoading(false);
-        alert("Planilha vazia ou sem linhas.");
-        return;
+      if (!best || best.headerScore < 4){
+        throw new Error("Não foi possível localizar um cabeçalho confiável na planilha.");
       }
 
-      // Validação: aceita variações de posição, mas exige as colunas pelo nome
-      const keys = Object.keys(json[0] || {});
-      const missing = REQUIRED_COLS.filter(col => !keys.includes(col));
+      const json = XLSX.utils.sheet_to_json(best.ws, { defval:null, raw:true, range:best.headerRow });
+      if (!json.length) throw new Error("A aba escolhida está vazia.");
+
+      const mapping = best.mapping;
+      const missing = Object.keys(COLS).filter(k => !mapping[k]);
       if (missing.length){
-        setLoading(false);
-        alert(
-          "Não encontrei as colunas: " + missing.join(", ") +
-          "\nObs: verifique se os nomes do cabeçalho estão exatamente iguais."
-        );
-        return;
+        throw new Error(`Não encontrei as colunas necessárias: ${missing.join(", ")}`);
       }
 
-      const now = new Date();
       rowsAll = [];
-
       const batchSize = 2000;
-      for (let i=0; i<json.length; i+=batchSize){
-        const batch = json.slice(i, i+batchSize);
-
+      for (let i = 0; i < json.length; i += batchSize){
+        const batch = json.slice(i, i + batchSize);
         for (const r of batch){
-          const nivelRaw = normStr(r[EXPECTED.nivel]);
+          const nivelRaw = normStr(r[mapping.nivel]);
           const nivelN = normKey(nivelRaw);
-
-          const isN1 = (nivelN==="n1" || nivelN==="1" || nivelN.includes("n1") || nivelN.includes("n 1"));
+          const isN1 = nivelN === "n1" || nivelN === "1" || nivelN.includes("n1") || nivelN.includes("n 1");
           if (!isN1) continue;
 
-          const criacaoDate = parseDateCell(r[EXPECTED.criacao]);
-          const hours = criacaoDate ? hoursDiff(criacaoDate, now) : null;
-          const bucket = (hours==null) ? "Sem data" : slaBucket(hours);
-
           rowsAll.push({
-            numero: normStr(r[EXPECTED.numero]),
-            ponto: normStr(r[EXPECTED.ponto]),
-            endereco: normStr(r[EXPECTED.endereco]),
-            ambiente: normStr(r[EXPECTED.ambiente]),
-            praca: normStr(r[EXPECTED.praca]),
-            area: normStr(r[EXPECTED.area]),
+            numero: normStr(r[mapping.numero]),
+            ponto: normStr(r[mapping.ponto]),
+            endereco: normStr(r[mapping.endereco]),
+            ambiente: normStr(r[mapping.ambiente]),
+            praca: normStr(r[mapping.praca]),
+            area: normStr(r[mapping.area]),
             nivel: nivelRaw,
-            criacao: criacaoDate,
-            horasAberto: hours,
-            statusSLA: bucket
+            criacao: parseDateCell(r[mapping.criacao])
           });
         }
 
         const prog = 15 + Math.floor((i / Math.max(1, json.length)) * 80);
-        setLoading(true, "Processando linhas", Math.min(95, prog));
+        setLoading(true, `Processando linhas da aba “${best.name}”`, Math.min(95, prog));
         await yieldToUI();
       }
 
       setLoading(true, "Montando dashboard", 98);
-
-      populateFilter($("pracaSelect"), unique(rowsAll.map(x=>x.praca)).sort((a,b)=>a.localeCompare(b,"pt-BR")), "Todas");
-      populateFilter($("ambienteSelect"), unique(rowsAll.map(x=>x.ambiente)).sort((a,b)=>a.localeCompare(b,"pt-BR")), "Todos");
-      populateFilter($("areaSelect"), unique(rowsAll.map(x=>x.area)).sort((a,b)=>a.localeCompare(b,"pt-BR")), "Todas");
-
       disableFilters(false);
-
-      if (rowsAll.length === 0){
-        $("debugInfo").style.display = "block";
-        $("debugInfo").textContent = "Debug: 0 linhas após filtro N1. Verifique a coluna 'Nível'.";
-      }
-
       applyFiltersAndRender();
-      setLoading(false);
+      startAutoRefresh();
 
+      $("debugInfo").style.display = "block";
+      $("debugInfo").textContent = `Aba usada: ${best.name} · Cabeçalho na linha ${best.headerRow + 1} · Linhas N1: ${rowsAll.length}`;
+      setLoading(false);
     } catch (err){
       console.error(err);
       setLoading(false);
-      alert("Erro ao processar a planilha. Veja o Console (F12) para detalhes.");
+      alert(`Erro ao processar a planilha: ${err.message || err}`);
     }
   }
 
@@ -471,7 +530,7 @@
       const reader = new FileReader();
       reader.onprogress = (e)=>{
         if (e.lengthComputable){
-          const pct = Math.floor((e.loaded/e.total)*100);
+          const pct = Math.floor((e.loaded / e.total) * 100);
           onProgress?.(pct);
         }
       };
@@ -481,13 +540,44 @@
     });
   }
 
-  function applyFiltersAndRender(){
+  function enrichRows(rows){
+    const now = new Date();
+    return rows.map(r => {
+      const horasAberto = r.criacao ? hoursDiff(r.criacao, now) : null;
+      return {
+        ...r,
+        horasAberto,
+        statusSLA: getBucket(horasAberto)
+      };
+    });
+  }
+
+  function refreshFilterOptions(baseRows){
+    const currPraca = $("pracaSelect").value;
+    const currAmb = $("ambienteSelect").value;
+    const currArea = $("areaSelect").value;
+
+    populateFilter($("pracaSelect"), unique(baseRows.map(x=>x.praca)).sort((a,b)=>a.localeCompare(b, "pt-BR")), "Todas", currPraca);
+
+    const rowsForAmb = baseRows.filter(r => !$("pracaSelect").value || r.praca === $("pracaSelect").value);
+    populateFilter($("ambienteSelect"), unique(rowsForAmb.map(x=>x.ambiente)).sort((a,b)=>a.localeCompare(b, "pt-BR")), "Todos", currAmb);
+
+    const rowsForArea = rowsForAmb.filter(r => !$("ambienteSelect").value || r.ambiente === $("ambienteSelect").value);
+    populateFilter($("areaSelect"), unique(rowsForArea.map(x=>x.area)).sort((a,b)=>a.localeCompare(b, "pt-BR")), "Todas", currArea);
+  }
+
+  function applyFiltersAndRender(options = {}){
+    const { keepFilterOptions = false } = options;
+    const enriched = enrichRows(rowsAll);
+
+    if (!keepFilterOptions) refreshFilterOptions(enriched);
+
     const fPraca = $("pracaSelect").value;
     const fAmb = $("ambienteSelect").value;
     const fArea = $("areaSelect").value;
     const q = normKey($("searchInput").value);
 
-    rowsFiltered = rowsAll.filter(r=>{
+    rowsFiltered = enriched.filter(r => {
       if (fPraca && r.praca !== fPraca) return false;
       if (fAmb && r.ambiente !== fAmb) return false;
       if (fArea && r.area !== fArea) return false;
@@ -510,14 +600,14 @@
 
   function renderKpis(rows){
     const total = rows.length;
-    const dentro = rows.filter(r=>r.statusSLA==="Dentro do SLA").length;
-    const proximo = rows.filter(r=>r.statusSLA==="Próximo do vencimento").length;
-    const estourado = rows.filter(r=>r.statusSLA==="Estourado").length;
+    const dentro = rows.filter(r => r.statusSLA === "Dentro do SLA").length;
+    const proximo = rows.filter(r => r.statusSLA === "Próximo do vencimento").length;
+    const estourado = rows.filter(r => r.statusSLA === "Estourado").length;
 
-    $("kpiTotal").textContent = total ?? 0;
-    $("kpiDentro").textContent = dentro ?? 0;
-    $("kpiProximo").textContent = proximo ?? 0;
-    $("kpiEstourado").textContent = estourado ?? 0;
+    $("kpiTotal").textContent = total;
+    $("kpiDentro").textContent = dentro;
+    $("kpiProximo").textContent = proximo;
+    $("kpiEstourado").textContent = estourado;
   }
 
   function renderSummary(rows){
@@ -525,12 +615,16 @@
       $("summaryNote").textContent = "Carregue uma planilha para ver o resumo.";
       return;
     }
-    $("summaryNote").textContent = `Linhas consideradas: ${rows.length} (após filtros). Atualizado em ${fmtDate(new Date())}.`;
+
+    const semData = rows.filter(r => r.statusSLA === "Sem data").length;
+    const msgSemData = semData ? ` · Sem data válida: ${semData}` : "";
+    $("summaryNote").textContent = `Linhas consideradas: ${rows.length} (após filtros). Atualizado em ${fmtDate(new Date())}${msgSemData}.`;
   }
 
- function renderCards(rows){
+  function renderCards(rows){
     const host = $("cardsPraca");
     host.innerHTML = "";
+
     if (!rowsAll.length){
       host.innerHTML = `<div class="muted">Sem dados.</div>`;
       return;
@@ -538,51 +632,47 @@
 
     const fPraca = $("pracaSelect").value;
 
-    // LÓGICA NOVA: Se uma praça específica for selecionada, mostra por DIA
-    if (fPraca !== "") {
-      const byDay = groupBy(rows, r => {
-        if (!r.criacao) return "Sem data";
-        return r.criacao.toLocaleDateString('pt-BR');
-      });
-
-      // Ordena as datas da mais antiga para a mais nova
-      const sortedDays = Array.from(byDay.keys()).sort((a, b) => {
+    if (fPraca){
+      const byDay = groupBy(rows, r => r.criacao ? r.criacao.toLocaleDateString("pt-BR") : "Sem data");
+      const sortedDays = Array.from(byDay.keys()).sort((a,b) => {
         if (a === "Sem data") return 1;
         if (b === "Sem data") return -1;
-        const [da, ma, ya] = a.split('/').map(Number);
-        const [db, mb, yb] = b.split('/').map(Number);
+        const [da, ma, ya] = a.split("/").map(Number);
+        const [db, mb, yb] = b.split("/").map(Number);
         return new Date(ya, ma - 1, da) - new Date(yb, mb - 1, db);
       });
 
-      for (const dia of sortedDays) {
+      for (const dia of sortedDays){
         const list = byDay.get(dia);
         const el = document.createElement("div");
         el.className = "card mini";
         el.innerHTML = `
           <h3>${escapeHtml(dia)}</h3>
           <div class="meta">Chamados no dia: <b>${list.length}</b></div>
-          <div class="line"><span><span class="dot good"></span> No Prazo</span><b>${list.filter(r=>r.statusSLA==="Dentro do SLA").length}</b></div>
-          <div class="line"><span><span class="dot bad"></span> Estourado</span><b>${list.filter(r=>r.statusSLA==="Estourado").length}</b></div>
+          <div class="line"><span><span class="dot good"></span> Dentro</span><b>${list.filter(r=>r.statusSLA === "Dentro do SLA").length}</b></div>
+          <div class="line"><span><span class="dot warn"></span> Próximo</span><b>${list.filter(r=>r.statusSLA === "Próximo do vencimento").length}</b></div>
+          <div class="line"><span><span class="dot bad"></span> Estourado</span><b>${list.filter(r=>r.statusSLA === "Estourado").length}</b></div>
+          <div class="line"><span><span class="dot soft"></span> Sem data</span><b>${list.filter(r=>r.statusSLA === "Sem data").length}</b></div>
         `;
         host.appendChild(el);
       }
-      return; // Interrompe aqui para não renderizar o resumo geral
+      return;
     }
 
-    // LÓGICA ORIGINAL: Resumo por Praça (quando "Todas" está selecionado)
-    const by = groupBy(rows, r=>r.praca || "Sem Praça");
-    const pracas = Array.from(by.keys()).sort((a,b)=>a.localeCompare(b,"pt-BR"));
+    const by = groupBy(rows, r => r.praca || "Sem Praça");
+    const pracas = Array.from(by.keys()).sort((a,b)=>a.localeCompare(b, "pt-BR"));
 
     for (const pr of pracas){
       const list = by.get(pr);
-      const worst = list.filter(r=>r.horasAberto!=null).sort((a,b)=>b.horasAberto-a.horasAberto)[0];
+      const worst = list.filter(r=>r.horasAberto != null).sort((a,b)=>b.horasAberto - a.horasAberto)[0];
       const el = document.createElement("div");
       el.className = "card mini";
       el.innerHTML = `
         <h3>${escapeHtml(pr)}</h3>
         <div class="meta">Total: <b>${list.length}</b></div>
-        <div class="line"><span><span class="dot good"></span> Dentro</span><b>${list.filter(r=>r.statusSLA==="Dentro do SLA").length}</b></div>
-        <div class="line"><span><span class="dot bad"></span> Estourado</span><b>${list.filter(r=>r.statusSLA==="Estourado").length}</b></div>
+        <div class="line"><span><span class="dot good"></span> Dentro</span><b>${list.filter(r=>r.statusSLA === "Dentro do SLA").length}</b></div>
+        <div class="line"><span><span class="dot warn"></span> Próximo</span><b>${list.filter(r=>r.statusSLA === "Próximo do vencimento").length}</b></div>
+        <div class="line"><span><span class="dot bad"></span> Estourado</span><b>${list.filter(r=>r.statusSLA === "Estourado").length}</b></div>
         <div style="margin-top:10px; color:var(--muted); font-size:12px;">
           Maior tempo: ${worst ? `<b>${Math.floor(worst.horasAberto)}h</b>` : "—"}
         </div>
@@ -593,16 +683,18 @@
 
   function renderTable(rows){
     const tbody = $("tbody");
+
     if (!rowsAll.length){
       tbody.innerHTML = `<tr><td colspan="9" class="muted">Carregue uma planilha para visualizar.</td></tr>`;
       return;
     }
+
     if (!rows.length){
       tbody.innerHTML = `<tr><td colspan="9" class="muted">Nenhuma linha após filtros.</td></tr>`;
       return;
     }
 
-    const sorted = [...rows].sort((a,b)=>(b.horasAberto ?? -1)-(a.horasAberto ?? -1));
+    const sorted = [...rows].sort((a,b)=>(b.horasAberto ?? -1) - (a.horasAberto ?? -1));
     tbody.innerHTML = sorted.slice(0, 500).map(r => `
       <tr>
         <td>${escapeHtml(r.numero)}</td>
@@ -612,20 +704,19 @@
         <td>${escapeHtml(r.ponto)}</td>
         <td>${escapeHtml(r.endereco)}</td>
         <td>${escapeHtml(fmtDate(r.criacao))}</td>
-        <td class="right">${r.horasAberto==null ? "—" : Math.floor(r.horasAberto)}</td>
+        <td class="right">${r.horasAberto == null ? "—" : Math.floor(r.horasAberto)}</td>
         <td><span class="status ${statusClass(r.statusSLA)}">${escapeHtml(r.statusSLA)}</span></td>
       </tr>
     `).join("");
   }
 
-  // ===== EXPORTAÇÃO =====
   function exportDetalhadoXlsx(){
     if (typeof XLSX === "undefined"){
       alert("Biblioteca XLSX não carregada.");
       return;
     }
-    if (!rowsFiltered || rowsFiltered.length === 0){
-      alert("Não há linhas para exportar (aplique menos filtros).");
+    if (!rowsFiltered.length){
+      alert("Não há linhas para exportar.");
       return;
     }
 
@@ -645,12 +736,7 @@
     const ws = XLSX.utils.json_to_sheet(data);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Detalhado (filtrado)");
-
-    const stamp = new Date();
-    const pad = n => String(n).padStart(2,"0");
-    const fileName = `Chamados_N1_Detalhado_${stamp.getFullYear()}-${pad(stamp.getMonth()+1)}-${pad(stamp.getDate())}_${pad(stamp.getHours())}${pad(stamp.getMinutes())}.xlsx`;
-
-    XLSX.writeFile(wb, fileName);
+    XLSX.writeFile(wb, buildExportName("Chamados_N1_Detalhado"));
   }
 
   function exportResumoPracaXlsx(){
@@ -658,31 +744,23 @@
       alert("Biblioteca XLSX não carregada.");
       return;
     }
-    if (!rowsFiltered || rowsFiltered.length === 0){
-      alert("Não há dados para exportar (aplique menos filtros).");
+    if (!rowsFiltered.length){
+      alert("Não há dados para exportar.");
       return;
     }
 
     const byPraca = groupBy(rowsFiltered, r => r.praca || "Sem Praça");
-    const pracas = Array.from(byPraca.keys()).sort((a,b)=>a.localeCompare(b,"pt-BR"));
-
+    const pracas = Array.from(byPraca.keys()).sort((a,b)=>a.localeCompare(b, "pt-BR"));
     const resumo = pracas.map(pr => {
       const list = byPraca.get(pr);
-      const total = list.length;
-      const dentro = list.filter(r => r.statusSLA === "Dentro do SLA").length;
-      const proximo = list.filter(r => r.statusSLA === "Próximo do vencimento").length;
-      const estourado = list.filter(r => r.statusSLA === "Estourado").length;
-
-      const pior = list
-        .filter(r => r.horasAberto != null)
-        .sort((a,b)=>b.horasAberto-a.horasAberto)[0];
-
+      const pior = list.filter(r => r.horasAberto != null).sort((a,b)=>b.horasAberto - a.horasAberto)[0];
       return {
         "Praça": pr,
-        "Total": total,
-        "Dentro do SLA": dentro,
-        "Próximo do vencimento": proximo,
-        "Estourado": estourado,
+        "Total": list.length,
+        "Dentro do SLA": list.filter(r=>r.statusSLA === "Dentro do SLA").length,
+        "Próximo do vencimento": list.filter(r=>r.statusSLA === "Próximo do vencimento").length,
+        "Estourado": list.filter(r=>r.statusSLA === "Estourado").length,
+        "Sem data": list.filter(r=>r.statusSLA === "Sem data").length,
         "Maior tempo (h)": pior ? Math.floor(pior.horasAberto) : ""
       };
     });
@@ -690,15 +768,15 @@
     const ws = XLSX.utils.json_to_sheet(resumo);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Resumo por praça");
-
-    const stamp = new Date();
-    const pad = n => String(n).padStart(2,"0");
-    const fileName = `Chamados_N1_Resumo_Praca_${stamp.getFullYear()}-${pad(stamp.getMonth()+1)}-${pad(stamp.getDate())}_${pad(stamp.getHours())}${pad(stamp.getMinutes())}.xlsx`;
-
-    XLSX.writeFile(wb, fileName);
+    XLSX.writeFile(wb, buildExportName("Chamados_N1_Resumo_Praca"));
   }
 
-  // ===== INIT =====
+  function buildExportName(prefix){
+    const stamp = new Date();
+    const pad = n => String(n).padStart(2, "0");
+    return `${prefix}_${stamp.getFullYear()}-${pad(stamp.getMonth()+1)}-${pad(stamp.getDate())}_${pad(stamp.getHours())}${pad(stamp.getMinutes())}.xlsx`;
+  }
+
   disableFilters(true);
   renderAll();
 </script>
