@@ -528,7 +528,7 @@
     $("summaryNote").textContent = `Linhas consideradas: ${rows.length} (após filtros). Atualizado em ${fmtDate(new Date())}.`;
   }
 
-  function renderCards(rows){
+ function renderCards(rows){
     const host = $("cardsPraca");
     host.innerHTML = "";
     if (!rowsAll.length){
@@ -536,35 +536,55 @@
       return;
     }
 
+    const fPraca = $("pracaSelect").value;
+
+    // LÓGICA NOVA: Se uma praça específica for selecionada, mostra por DIA
+    if (fPraca !== "") {
+      const byDay = groupBy(rows, r => {
+        if (!r.criacao) return "Sem data";
+        return r.criacao.toLocaleDateString('pt-BR');
+      });
+
+      // Ordena as datas da mais antiga para a mais nova
+      const sortedDays = Array.from(byDay.keys()).sort((a, b) => {
+        if (a === "Sem data") return 1;
+        if (b === "Sem data") return -1;
+        const [da, ma, ya] = a.split('/').map(Number);
+        const [db, mb, yb] = b.split('/').map(Number);
+        return new Date(ya, ma - 1, da) - new Date(yb, mb - 1, db);
+      });
+
+      for (const dia of sortedDays) {
+        const list = byDay.get(dia);
+        const el = document.createElement("div");
+        el.className = "card mini";
+        el.innerHTML = `
+          <h3>${escapeHtml(dia)}</h3>
+          <div class="meta">Chamados no dia: <b>${list.length}</b></div>
+          <div class="line"><span><span class="dot good"></span> No Prazo</span><b>${list.filter(r=>r.statusSLA==="Dentro do SLA").length}</b></div>
+          <div class="line"><span><span class="dot bad"></span> Estourado</span><b>${list.filter(r=>r.statusSLA==="Estourado").length}</b></div>
+        `;
+        host.appendChild(el);
+      }
+      return; // Interrompe aqui para não renderizar o resumo geral
+    }
+
+    // LÓGICA ORIGINAL: Resumo por Praça (quando "Todas" está selecionado)
     const by = groupBy(rows, r=>r.praca || "Sem Praça");
     const pracas = Array.from(by.keys()).sort((a,b)=>a.localeCompare(b,"pt-BR"));
-    if (!pracas.length){
-      host.innerHTML = `<div class="muted">Nenhuma linha após filtros.</div>`;
-      return;
-    }
 
     for (const pr of pracas){
       const list = by.get(pr);
-      const total = list.length;
-      const dentro = list.filter(r=>r.statusSLA==="Dentro do SLA").length;
-      const proximo = list.filter(r=>r.statusSLA==="Próximo do vencimento").length;
-      const estourado = list.filter(r=>r.statusSLA==="Estourado").length;
-
       const worst = list.filter(r=>r.horasAberto!=null).sort((a,b)=>b.horasAberto-a.horasAberto)[0];
-
       const el = document.createElement("div");
       el.className = "card mini";
       el.innerHTML = `
         <h3>${escapeHtml(pr)}</h3>
-        <div class="meta">Total: <b>${total}</b></div>
-        <div class="line"><span><span class="dot good"></span> Dentro</span><b>${dentro}</b></div>
-        <div class="line"><span><span class="dot warn"></span> Próximo</span><b>${proximo}</b></div>
-        <div class="line"><span><span class="dot bad"></span> Estourado</span><b>${estourado}</b></div>
+        <div class="meta">Total: <b>${list.length}</b></div>
+        <div class="line"><span><span class="dot good"></span> Dentro</span><b>${list.filter(r=>r.statusSLA==="Dentro do SLA").length}</b></div>
+        <div class="line"><span><span class="dot bad"></span> Estourado</span><b>${list.filter(r=>r.statusSLA==="Estourado").length}</b></div>
         <div style="margin-top:10px; color:var(--muted); font-size:12px;">
-          Maior tempo em aberto:
-          <div style="margin-top:6px; color:var(--text); font-size:13px;">
-            ${worst ? `<b>${escapeHtml(worst.numero || "—")}</b> — ${Math.floor(worst.horasAberto)}h` : "—"}
-          </div>
+          Maior tempo: ${worst ? `<b>${Math.floor(worst.horasAberto)}h</b>` : "—"}
         </div>
       `;
       host.appendChild(el);
