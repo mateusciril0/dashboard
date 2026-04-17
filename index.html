@@ -11,27 +11,23 @@
     :root {
       --bg: #050505;
       --card: #121212;
-      --accent: #f05a22; /* Laranja Eletromidia */
+      --accent: #f05a22; 
       --text: #ffffff;
       --muted: #888888;
       --line: #222222;
       --good: #22c55e;
       --warn: #f59e0b;
       --bad: #ef4444;
-      --soft: #444444;
     }
 
     * { box-sizing: border-box; }
-    
     body {
       margin: 0;
-      font-family: 'Inter', -apple-system, sans-serif;
+      font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
       background-color: var(--bg);
       color: var(--text);
-      overflow-x: hidden;
     }
 
-    /* --- HEADER COMPACTO --- */
     header {
       display: flex;
       justify-content: space-between;
@@ -41,21 +37,10 @@
       border-bottom: 1px solid var(--line);
     }
 
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-weight: 700;
-      font-size: 18px;
-      letter-spacing: -0.5px;
-    }
-
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 18px; }
     .brand span { color: var(--accent); }
-    .brand .noc { color: var(--text); font-weight: 300; border-left: 1px solid #333; padding-left: 10px; font-size: 16px; }
+    .brand .noc { color: var(--text); font-weight: 300; border-left: 1px solid #333; padding-left: 10px; }
 
-    .header-info { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
-
-    /* --- LAYOUT --- */
     main {
       max-width: 1600px;
       margin: 0 auto;
@@ -67,122 +52,60 @@
 
     .sidebar { display: flex; flex-direction: column; gap: 16px; }
 
-    .card {
-      background: var(--card);
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      padding: 16px;
-    }
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 16px; }
 
-    /* --- UPLOADER --- */
+    /* Dropzone Corrigida */
     .drop {
-      border: 1px dashed #333;
+      border: 2px dashed #333;
       border-radius: 6px;
-      padding: 25px 15px;
+      padding: 30px 15px;
       text-align: center;
       cursor: pointer;
       transition: 0.2s;
       background: rgba(255,255,255,0.02);
     }
-    .drop:hover { border-color: var(--accent); background: rgba(240,90,34,0.05); }
-    .drop strong { display: block; font-size: 13px; margin-bottom: 4px; }
-    .drop span { font-size: 11px; color: var(--muted); }
+    .drop.dragover { border-color: var(--accent); background: rgba(240,90,34,0.1); }
+    .drop strong { display: block; font-size: 13px; margin-bottom: 5px; pointer-events: none; }
+    .drop span { font-size: 11px; color: var(--muted); pointer-events: none; }
 
-    /* --- KPIs --- */
-    .kpis-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-    }
-    .kpi {
-      padding: 12px;
-      background: #181818;
-      border-radius: 6px;
-      border-left: 3px solid #333;
-    }
+    .kpis-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .kpi { padding: 12px; background: #181818; border-radius: 6px; border-left: 3px solid #333; }
     .kpi.total { border-left-color: var(--accent); }
     .kpi.dentro { border-left-color: var(--good); }
     .kpi.alerta { border-left-color: var(--warn); }
     .kpi.atrasado { border-left-color: var(--bad); }
-    
     .kpi .label { font-size: 10px; color: var(--muted); text-transform: uppercase; font-weight: 600; }
     .kpi .value { font-size: 22px; font-weight: 700; margin-top: 4px; }
 
-    /* --- FILTROS --- */
-    .filters {
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
+    .filters { display: flex; gap: 12px; flex-wrap: wrap; }
     .field { flex: 1; min-width: 140px; }
     label { display: block; font-size: 10px; color: var(--muted); margin-bottom: 5px; text-transform: uppercase; }
     select, input {
-      width: 100%;
-      background: #181818;
-      border: 1px solid var(--line);
-      color: #fff;
-      padding: 8px 10px;
-      border-radius: 4px;
-      outline: none;
-      font-size: 13px;
+      width: 100%; background: #181818; border: 1px solid var(--line);
+      color: #fff; padding: 8px; border-radius: 4px; outline: none; font-size: 13px;
     }
-    select:focus, input:focus { border-color: var(--accent); }
 
-    /* --- TABELA --- */
-    .table-container {
-      overflow: auto;
-      max-height: 450px;
-      border-radius: 4px;
-      background: #0f0f0f;
-    }
+    .table-container { overflow: auto; max-height: 500px; background: #0f0f0f; border-radius: 4px; }
     table { width: 100%; border-collapse: collapse; font-size: 12px; }
-    thead th { background: #1a1a1a; padding: 12px; text-align: left; color: var(--muted); position: sticky; top: 0; z-index: 5; font-weight: 600; }
+    thead th { background: #1a1a1a; padding: 12px; text-align: left; color: var(--muted); position: sticky; top: 0; z-index: 5; }
     tbody td { padding: 10px 12px; border-bottom: 1px solid var(--line); color: #ccc; }
-    tbody tr:hover { background: rgba(255,255,255,0.02); }
     
-    .status {
-      padding: 3px 6px;
-      border-radius: 3px;
-      font-size: 10px;
-      font-weight: 700;
-    }
+    .status { padding: 3px 6px; border-radius: 3px; font-size: 10px; font-weight: 700; }
     .status.good { background: rgba(34,197,94,0.15); color: var(--good); }
     .status.warn { background: rgba(245,158,11,0.15); color: var(--warn); }
     .status.bad { background: rgba(239,68,68,0.15); color: var(--bad); }
 
     .btn {
-      background: var(--accent);
-      color: white;
-      border: none;
-      padding: 10px 16px;
-      border-radius: 4px;
-      font-weight: 700;
-      cursor: pointer;
-      font-size: 12px;
-      transition: 0.2s;
-      text-transform: uppercase;
+      background: var(--accent); color: white; border: none; padding: 10px;
+      border-radius: 4px; font-weight: 700; cursor: pointer; font-size: 12px; width: 100%;
     }
-    .btn:hover:not(:disabled) { filter: brightness(1.2); }
-    .btn.secondary { background: #222; color: #eee; }
+    .btn.secondary { background: #222; margin-top: 8px; }
     .btn:disabled { opacity: 0.3; cursor: not-allowed; }
 
-    /* Cards por Praça */
-    .grid-pracas {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-      gap: 12px;
-    }
+    .grid-pracas { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; margin-top: 10px; }
     .mini-card { background: #181818; padding: 12px; border-radius: 6px; border: 1px solid var(--line); }
     .mini-card h3 { margin: 0 0 10px; font-size: 12px; color: var(--accent); text-transform: uppercase; }
-    .mini-row { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 5px; color: #aaa; }
-    .mini-row b { color: #fff; }
-
-    .dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; margin-right: 5px; }
-    .dot.good { background: var(--good); } .dot.warn { background: var(--warn); } .dot.bad { background: var(--bad); }
-
-    @media (max-width: 1000px) {
-      main { grid-template-columns: 1fr; }
-    }
+    .mini-row { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 5px; }
 
     #overlay {
       position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 1000;
@@ -190,292 +113,247 @@
     }
     .spinner { width: 30px; height: 30px; border: 3px solid #333; border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (max-width: 1000px) { main { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
 
 <header>
-  <div class="brand">
-    <span>eletromidia</span> <div class="noc">NOC</div>
-  </div>
-  <div class="header-info">N1 Status Monitoring // SLA 48H</div>
+  <div class="brand"><span>eletromidia</span> <div class="noc">NOC</div></div>
+  <div style="font-size: 11px; color: var(--muted);">MONITORAMENTO N1</div>
 </header>
 
 <main>
   <div class="sidebar">
     <div class="card">
-      <div class="drop" id="dropZone" role="button" tabindex="0">
-        <strong>Importar Dados</strong>
-        <span>Arraste o Excel ou clique aqui</span>
-        <input type="file" id="fileInput" hidden accept=".xlsx,.xls,.xlsm" />
+      <div class="drop" id="dropZone">
+        <strong>Importar Planilha</strong>
+        <span>Clique ou arraste o arquivo</span>
       </div>
-      <div style="margin-top:12px; display:flex; gap:8px;">
-        <button class="btn" style="flex:1" id="pickBtn">Selecionar</button>
-        <button class="btn secondary" id="resetBtn">Limpar</button>
-      </div>
-      <div id="fileInfo" style="font-size:10px; color:var(--muted); margin-top:12px; text-align:center;">Nenhum arquivo carregado.</div>
+      <input type="file" id="fileInput" style="display:none" accept=".xlsx,.xls,.xlsm" />
+      <button class="btn secondary" onclick="location.reload()">Limpar Dashboard</button>
+      <div id="fileInfo" style="font-size:10px; color:var(--muted); margin-top:12px; text-align:center;">Aguardando arquivo...</div>
     </div>
 
     <div class="card">
       <div class="kpis-grid">
-        <div class="kpi total"><div class="label">Total</div><div class="value" id="kpiTotal">—</div></div>
-        <div class="kpi dentro"><div class="label">No Prazo</div><div class="value" id="kpiDentro">—</div></div>
-        <div class="kpi alerta"><div class="label">Alerta</div><div class="value" id="kpiProximo">—</div></div>
-        <div class="kpi atrasado"><div class="label">Crítico</div><div class="value" id="kpiEstourado">—</div></div>
+        <div class="kpi total"><div class="label">Total</div><div class="value" id="kpiTotal">0</div></div>
+        <div class="kpi dentro"><div class="label">No Prazo</div><div class="value" id="kpiDentro">0</div></div>
+        <div class="kpi alerta"><div class="label">Alerta</div><div class="value" id="kpiProximo">0</div></div>
+        <div class="kpi atrasado"><div class="label">Crítico</div><div class="value" id="kpiEstourado">0</div></div>
       </div>
     </div>
 
-    <button class="btn" id="exportDetalhadoBtn" disabled>Exportar Relatório</button>
-    <div id="debugInfo" style="font-size:9px; color:#444; margin-top:10px; line-height:1.4;"></div>
+    <button class="btn" id="exportBtn" disabled onclick="exportarExcel()">Exportar Filtrados</button>
   </div>
 
   <div class="content">
     <div class="card" style="margin-bottom:16px;">
       <div class="filters">
         <div class="field">
-          <label>Filtrar Praça</label>
-          <select id="pracaSelect" disabled><option value="">Todas</option></select>
+          <label>Praça</label>
+          <select id="pracaSelect" onchange="filtrar()"><option value="">Todas</option></select>
         </div>
         <div class="field">
           <label>Ambiente</label>
-          <select id="ambienteSelect" disabled><option value="">Todos</option></select>
+          <select id="ambienteSelect" onchange="filtrar()"><option value="">Todos</option></select>
         </div>
         <div class="field" style="flex: 2;">
-          <label>Pesquisa Direta</label>
-          <input id="searchInput" type="text" placeholder="Digite Ponto, OS ou Endereço..." disabled />
+          <label>Buscar</label>
+          <input id="searchInput" type="text" placeholder="Ponto, OS ou Endereço..." oninput="filtrar()" />
         </div>
       </div>
     </div>
 
     <div class="card">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-        <h2 style="font-size:14px; margin:0; text-transform:uppercase; letter-spacing:1px;">Fila de Atendimento</h2>
-        <div id="summaryNote" style="font-size:10px; color:var(--muted);"></div>
-      </div>
       <div class="table-container">
         <table>
           <thead>
             <tr>
-              <th>OS / ID</th>
+              <th>OS</th>
               <th>Praça</th>
-              <th>Ponto de Exibição</th>
-              <th>Data Abertura</th>
-              <th>Tempo Aberto</th>
-              <th>Status SLA</th>
+              <th>Ponto</th>
+              <th>Abertura</th>
+              <th>Tempo</th>
+              <th>Status</th>
             </tr>
           </thead>
           <tbody id="tbody">
-            <tr><td colspan="6" style="text-align:center; color:#444; padding:60px;">Importe uma planilha para iniciar o monitoramento.</td></tr>
+            <tr><td colspan="6" style="text-align:center; padding:50px; color:#444;">Nenhum dado carregado.</td></tr>
           </tbody>
         </table>
       </div>
     </div>
 
-    <h2 style="font-size:12px; margin: 24px 0 12px; text-transform:uppercase; color:var(--muted); letter-spacing:1px;">Performance por Regional</h2>
     <div class="grid-pracas" id="cardsPraca"></div>
   </div>
 </main>
 
 <div id="overlay">
   <div class="spinner"></div>
-  <div id="overlayMsg" style="font-size:13px; font-weight:600;">Lendo arquivo...</div>
-  <div id="overlayProg" style="font-size:11px; color:var(--muted);">0%</div>
+  <div id="overlayMsg">Processando...</div>
 </div>
 
 <script>
-  /* --- CONFIGURAÇÕES --- */
-  const SLA_HOURS = 48;
-  const WARN_FROM_HOURS = 36;
-  const REFRESH_MS = 60000;
+  let dadosOriginais = [];
+  let dadosFiltrados = [];
 
-  const COLS = {
-    numero: ["nº", "no", "numero", "número", "n°", "os", "ordem", "id"],
-    ponto: ["ponto", "local", "nome do ponto"],
-    endereco: ["endereço", "endereco", "logradouro", "rua"],
-    ambiente: ["ambiente"],
-    praca: ["praça", "praca", "uf", "regional"],
-    area: ["área de trabalho", "area de trabalho", "área", "area"],
-    nivel: ["nível", "nivel", "n1/n2/n3", "level"],
-    criacao: ["data de criação", "data de criacao", "abertura", "data abertura", "data de abertura", "criação", "criacao"]
+  // 1. Configurar cliques e Arraste
+  const dropZone = document.getElementById('dropZone');
+  const fileInput = document.getElementById('fileInput');
+
+  dropZone.onclick = () => fileInput.click();
+  
+  fileInput.onchange = (e) => {
+    if (e.target.files.length > 0) processarArquivo(e.target.files[0]);
   };
 
-  /* --- VARIÁVEIS GLOBAIS --- */
-  let rowsAll = [];
-  let rowsFiltered = [];
-  let refreshTimer = null;
+  dropZone.ondragover = (e) => {
+    e.preventDefault();
+    dropZone.classList.add('dragover');
+  };
 
-  /* --- UTILITÁRIOS --- */
-  const $ = (id) => document.getElementById(id);
-  const normStr = (v) => (v ?? "").toString().trim();
-  const normKey = (s) => normStr(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\s+/g," ").trim();
+  dropZone.ondragleave = () => dropZone.classList.remove('dragover');
 
-  function setLoading(on, msg="Processando", prog=null){
-    $("overlay").style.display = on ? "flex" : "none";
-    if(msg) $("overlayMsg").textContent = msg;
-    if(prog !== null) $("overlayProg").textContent = prog + "%";
-  }
+  dropZone.ondrop = (e) => {
+    e.preventDefault();
+    dropZone.classList.remove('dragover');
+    if (e.dataTransfer.files.length > 0) processarArquivo(e.dataTransfer.files[0]);
+  };
 
-  function hoursDiff(fromDate, toDate){
-    return (toDate.getTime() - fromDate.getTime()) / 36e5;
-  }
+  // 2. Processar o Excel
+  function processarArquivo(file) {
+    document.getElementById('overlay').style.display = 'flex';
+    document.getElementById('fileInfo').textContent = "Carregando: " + file.name;
 
-  function getBucket(hours){
-    if (hours == null) return "Sem data";
-    if (hours < WARN_FROM_HOURS) return "Dentro do SLA";
-    if (hours < SLA_HOURS) return "Próximo do vencimento";
-    return "Estourado";
-  }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+        const primeiraAba = workbook.Sheets[workbook.SheetNames[0]];
+        const lista = XLSX.utils.sheet_to_json(primeiraAba, { defval: "" });
 
-  /* --- CORE LOGIC --- */
-  async function handleFile(file){
-    setLoading(true, "Lendo arquivo...");
-    try {
-      const data = await file.arrayBuffer();
-      const wb = XLSX.read(data, { type: "array", cellDates: true });
-      
-      // Escolhe a melhor aba
-      let bestSheet = wb.SheetNames[0];
-      const ws = wb.Sheets[bestSheet];
-      const json = XLSX.utils.sheet_to_json(ws, { defval: "" });
+        // Mapeamento de colunas (tenta achar os nomes mais comuns)
+        dadosOriginais = lista.map(item => {
+          // Busca data de criação em colunas comuns
+          const dataCriacao = item["Data de Criação"] || item["Abertura"] || item["Criação"] || item["Data"];
+          const nivel = (item["Nível"] || item["Nivel"] || "").toString().toLowerCase();
+          
+          return {
+            os: item["Nº"] || item["ID"] || item["OS"] || "---",
+            praca: item["Praça"] || item["Praca"] || item["Regional"] || "Outros",
+            ponto: item["Ponto"] || item["Local"] || "---",
+            ambiente: item["Ambiente"] || "---",
+            endereco: item["Endereço"] || item["Endereco"] || "",
+            nivel: nivel,
+            abertura: dataCriacao instanceof Date ? dataCriacao : new Date(dataCriacao)
+          };
+        }).filter(item => item.nivel.includes("n1") || item.nivel === "1"); // Só N1
 
-      if(!json.length) throw new Error("Planilha vazia.");
-
-      // Mapeamento automático de colunas baseado nos headers
-      const headers = Object.keys(json[0]);
-      const mapping = {};
-      for (const [key, aliases] of Object.entries(COLS)) {
-        mapping[key] = headers.find(h => aliases.some(a => normKey(h).includes(normKey(a))));
+        // Preencher filtros
+        popularFiltros();
+        filtrar();
+        
+        document.getElementById('exportBtn').disabled = false;
+      } catch (err) {
+        alert("Erro ao ler o Excel. Verifique se o arquivo está correto.");
+        console.error(err);
+      } finally {
+        document.getElementById('overlay').style.display = 'none';
       }
-
-      // Filtrar apenas N1 e normalizar
-      rowsAll = json.map(r => {
-        const d = r[mapping.criacao];
-        const dateObj = d instanceof Date ? d : new Date(d);
-        return {
-          numero: r[mapping.numero],
-          ponto: r[mapping.ponto],
-          endereco: r[mapping.endereco],
-          ambiente: r[mapping.ambiente],
-          praca: r[mapping.praca],
-          nivel: normKey(r[mapping.nivel]),
-          criacao: isNaN(dateObj) ? null : dateObj
-        };
-      }).filter(r => r.nivel.includes("n1") || r.nivel === "1");
-
-      disableFilters(false);
-      applyFiltersAndRender();
-      setLoading(false);
-      $("fileInfo").textContent = `Arquivo: ${file.name} (${rowsAll.length} chamados N1)`;
-    } catch (e) {
-      alert("Erro: " + e.message);
-      setLoading(false);
-    }
+    };
+    reader.readAsArrayBuffer(file);
   }
 
-  function applyFiltersAndRender(){
-    const now = new Date();
-    const fPraca = $("pracaSelect").value;
-    const fAmb = $("ambienteSelect").value;
-    const q = normKey($("searchInput").value);
+  function popularFiltros() {
+    const pracas = [...new Set(dadosOriginais.map(d => d.praca))].sort();
+    const amb = [...new Set(dadosOriginais.map(d => d.ambiente))].sort();
+    
+    const sPraca = document.getElementById('pracaSelect');
+    const sAmb = document.getElementById('ambienteSelect');
 
-    // Atualiza opções dos filtros se estiver vazio
-    if($("pracaSelect").options.length <= 1) {
-        const pracas = [...new Set(rowsAll.map(r => r.praca))].sort();
-        pracas.forEach(p => $("pracaSelect").add(new Option(p, p)));
-        const ambs = [...new Set(rowsAll.map(r => r.ambiente))].sort();
-        ambs.forEach(a => $("ambienteSelect").add(new Option(a, a)));
-    }
+    pracas.forEach(p => sPraca.add(new Option(p, p)));
+    amb.forEach(a => sAmb.add(new Option(a, a)));
+  }
 
-    rowsFiltered = rowsAll.map(r => {
-      const hrs = r.criacao ? hoursDiff(r.criacao, now) : null;
-      return { ...r, horasAberto: hrs, statusSLA: getBucket(hrs) };
-    }).filter(r => {
-      if(fPraca && r.praca !== fPraca) return false;
-      if(fAmb && r.ambiente !== fAmb) return false;
-      if(q && !normKey(`${r.ponto} ${r.numero} ${r.endereco}`).includes(q)) return false;
-      return true;
+  function filtrar() {
+    const praca = document.getElementById('pracaSelect').value;
+    const amb = document.getElementById('ambienteSelect').value;
+    const busca = document.getElementById('searchInput').value.toLowerCase();
+    const agora = new Date();
+
+    dadosFiltrados = dadosOriginais.filter(d => {
+      const matchPraca = !praca || d.praca === praca;
+      const matchAmb = !amb || d.ambiente === amb;
+      const matchBusca = !busca || (d.os + d.ponto + d.praca + d.endereco).toLowerCase().includes(busca);
+      return matchPraca && matchAmb && matchBusca;
+    }).map(d => {
+      const diffHoras = d.abertura && !isNaN(d.abertura) ? Math.floor((agora - d.abertura) / (1000 * 60 * 60)) : null;
+      let status = "Sem data";
+      if (diffHoras !== null) {
+        if (diffHoras >= 48) status = "Estourado";
+        else if (diffHoras >= 36) status = "Próximo do vencimento";
+        else status = "Dentro do SLA";
+      }
+      return { ...d, horas: diffHoras, statusSLA: status };
     });
 
-    render();
+    atualizarTela();
   }
 
-  function render(){
+  function atualizarTela() {
     // KPIs
-    const d = rowsFiltered.filter(r => r.statusSLA === "Dentro do SLA").length;
-    const p = rowsFiltered.filter(r => r.statusSLA === "Próximo do vencimento").length;
-    const e = rowsFiltered.filter(r => r.statusSLA === "Estourado").length;
-    $("kpiTotal").textContent = rowsFiltered.length;
-    $("kpiDentro").textContent = d;
-    $("kpiProximo").textContent = p;
-    $("kpiEstourado").textContent = e;
+    document.getElementById('kpiTotal').textContent = dadosFiltrados.length;
+    document.getElementById('kpiDentro').textContent = dadosFiltrados.filter(d => d.statusSLA === "Dentro do SLA").length;
+    document.getElementById('kpiProximo').textContent = dadosFiltrados.filter(d => d.statusSLA === "Próximo do vencimento").length;
+    document.getElementById('kpiEstourado').textContent = dadosFiltrados.filter(d => d.statusSLA === "Estourado").length;
 
     // Tabela
-    const tbody = $("tbody");
-    tbody.innerHTML = rowsFiltered.sort((a,b) => b.horasAberto - a.horasAberto).slice(0, 100).map(r => `
+    const tbody = document.getElementById('tbody');
+    tbody.innerHTML = dadosFiltrados.sort((a,b) => (b.horas || 0) - (a.horas || 0)).slice(0, 100).map(d => `
       <tr>
-        <td><b>${r.numero}</b></td>
-        <td>${r.praca}</td>
-        <td>${r.ponto}</td>
-        <td>${r.criacao ? r.criacao.toLocaleString('pt-BR') : '—'}</td>
-        <td>${r.horasAberto ? Math.floor(r.horasAberto)+'h' : '—'}</td>
-        <td><span class="status ${getStatusClass(r.statusSLA)}">${r.statusSLA}</span></td>
+        <td><b>${d.os}</b></td>
+        <td>${d.praca}</td>
+        <td>${d.ponto}</td>
+        <td>${d.abertura && !isNaN(d.abertura) ? d.abertura.toLocaleString() : '---'}</td>
+        <td>${d.horas !== null ? d.horas + 'h' : '---'}</td>
+        <td><span class="status ${getClass(d.statusSLA)}">${d.statusSLA}</span></td>
       </tr>
     `).join("");
 
     // Cards Praça
-    const pracaGroup = {};
-    rowsFiltered.forEach(r => {
-        if(!pracaGroup[r.praca]) pracaGroup[r.praca] = {t:0, d:0, p:0, e:0};
-        pracaGroup[r.praca].t++;
-        if(r.statusSLA === "Dentro do SLA") pracaGroup[r.praca].d++;
-        if(r.statusSLA === "Próximo do vencimento") pracaGroup[r.praca].p++;
-        if(r.statusSLA === "Estourado") pracaGroup[r.praca].e++;
+    const resumo = {};
+    dadosFiltrados.forEach(d => {
+      if(!resumo[d.praca]) resumo[d.praca] = {t:0, e:0};
+      resumo[d.praca].t++;
+      if(d.statusSLA === "Estourado") resumo[d.praca].e++;
     });
 
-    $("cardsPraca").innerHTML = Object.entries(pracaGroup).map(([name, stat]) => `
-        <div class="mini-card">
-            <h3>${name}</h3>
-            <div class="mini-row"><span>Total</span><b>${stat.t}</b></div>
-            <div class="mini-row"><span><i class="dot good"></i>OK</span><b>${stat.d}</b></div>
-            <div class="mini-row"><span><i class="dot warn"></i>Atenção</span><b>${stat.p}</b></div>
-            <div class="mini-row"><span><i class="dot bad"></i>Crítico</span><b>${stat.e}</b></div>
-        </div>
+    document.getElementById('cardsPraca').innerHTML = Object.entries(resumo).map(([nome, info]) => `
+      <div class="mini-card">
+        <h3>${nome}</h3>
+        <div class="mini-row"><span>Total N1</span><b>${info.t}</b></div>
+        <div class="mini-row"><span>Críticos</span><b style="color:var(--bad)">${info.e}</b></div>
+      </div>
     `).join("");
-    
-    $("exportDetalhadoBtn").disabled = rowsFiltered.length === 0;
   }
 
-  function getStatusClass(s){
+  function getClass(s) {
     if(s === "Dentro do SLA") return "good";
     if(s === "Próximo do vencimento") return "warn";
     if(s === "Estourado") return "bad";
     return "";
   }
 
-  function disableFilters(state){
-    $("pracaSelect").disabled = state;
-    $("ambienteSelect").disabled = state;
-    $("searchInput").disabled = state;
-  }
-
-  /* --- EVENTOS --- */
-  $("pickBtn").onclick = () => $("fileInput").click();
-  $("fileInput").onchange = (e) => e.target.files[0] && handleFile(e.target.files[0]);
-  $("pracaSelect").onchange = applyFiltersAndRender;
-  $("ambienteSelect").onchange = applyFiltersAndRender;
-  $("searchInput").oninput = applyFiltersAndRender;
-  $("resetBtn").onclick = () => location.reload();
-
-  $("dropZone").ondragover = (e) => { e.preventDefault(); e.target.classList.add('hover'); };
-  $("dropZone").ondrop = (e) => { e.preventDefault(); handleFile(e.dataTransfer.files[0]); };
-
-  $("exportDetalhadoBtn").onclick = () => {
-    const ws = XLSX.utils.json_to_sheet(rowsFiltered);
+  function exportarExcel() {
+    const ws = XLSX.utils.json_to_sheet(dadosFiltrados);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Status_N1");
-    XLSX.writeFile(wb, `NOC_Eletromidia_N1.xlsx`);
-  };
-
+    XLSX.utils.book_append_sheet(wb, ws, "Filtro_NOC");
+    XLSX.writeFile(wb, "Relatorio_N1_NOC.xlsx");
+  }
 </script>
+
 </body>
 </html>
