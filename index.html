@@ -1,252 +1,481 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Dashboard — Chamados N1 em Aberto (SLA 48h)</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Eletromidia NOC — Dashboard N1</title>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
-<style>
-:root{
-  --bg:#0b0f14; --card:#111827; --muted:#94a3b8; --text:#e5e7eb; --line:#1f2937;
-  --good:#22c55e; --warn:#f59e0b; --bad:#ef4444; --accent:#f43f5e; --soft:#64748b;
-}
-*{box-sizing:border-box}
+  <style>
+    :root {
+      --bg: #050505;
+      --card: #121212;
+      --accent: #f05a22; /* Laranja Eletromidia */
+      --text: #ffffff;
+      --muted: #888888;
+      --line: #222222;
+      --good: #22c55e;
+      --warn: #f59e0b;
+      --bad: #ef4444;
+      --soft: #444444;
+    }
 
-body{
-  margin:0;
-  font-family: ui-sans-serif, system-ui;
-  background: var(--bg);
-  color:var(--text);
-}
+    * { box-sizing: border-box; }
+    
+    body {
+      margin: 0;
+      font-family: 'Inter', -apple-system, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      overflow-x: hidden;
+    }
 
-/* HEADER MAIS COMPACTO */
-header{
-  padding:12px 16px 4px;
-  max-width:1200px;
-  margin:0 auto;
-}
-h1{margin:0;font-size:18px}
-.sub{font-size:12px;color:var(--muted)}
+    /* --- HEADER COMPACTO --- */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 10px 20px;
+      background: #000;
+      border-bottom: 1px solid var(--line);
+    }
 
-main{
-  max-width:1200px;
-  margin:auto;
-  padding:10px;
-  display:flex;
-  flex-direction:column;
-  gap:10px;
-}
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 18px;
+      letter-spacing: -0.5px;
+    }
 
-/* TOPO */
-.row{
-  display:flex;
-  gap:8px;
-  flex-wrap:wrap;
-}
+    .brand span { color: var(--accent); }
+    .brand .noc { color: var(--text); font-weight: 300; border-left: 1px solid #333; padding-left: 10px; font-size: 16px; }
 
-.card{
-  background:var(--card);
-  border:1px solid var(--line);
-  border-radius:12px;
-  padding:10px;
-}
+    .header-info { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
 
-/* UPLOADER COMPACTO */
-.uploader{
-  flex:1;
-  display:flex;
-  gap:10px;
-  align-items:center;
-}
+    /* --- LAYOUT --- */
+    main {
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: 16px;
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 16px;
+    }
 
-.drop{
-  flex:1;
-  border:1px dashed var(--line);
-  border-radius:10px;
-  padding:8px;
-  font-size:12px;
-  cursor:pointer;
-}
-.drop strong{font-size:13px}
-.drop span{font-size:11px;color:var(--muted)}
+    .sidebar { display: flex; flex-direction: column; gap: 16px; }
 
-.btn{
-  padding:6px 10px;
-  font-size:12px;
-  border-radius:8px;
-  border:none;
-  cursor:pointer;
-  background:var(--accent);
-  color:white;
-}
-.btn.secondary{background:#334155}
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
 
-/* KPI COMPACTO */
-.kpis{
-  flex:1;
-  display:grid;
-  grid-template-columns: repeat(4,1fr);
-  gap:6px;
-}
+    /* --- UPLOADER --- */
+    .drop {
+      border: 1px dashed #333;
+      border-radius: 6px;
+      padding: 25px 15px;
+      text-align: center;
+      cursor: pointer;
+      transition: 0.2s;
+      background: rgba(255,255,255,0.02);
+    }
+    .drop:hover { border-color: var(--accent); background: rgba(240,90,34,0.05); }
+    .drop strong { display: block; font-size: 13px; margin-bottom: 4px; }
+    .drop span { font-size: 11px; color: var(--muted); }
 
-.kpi{
-  padding:8px;
-  border:1px solid var(--line);
-  border-radius:10px;
-}
-.kpi .label{font-size:11px;color:var(--muted)}
-.kpi .value{font-size:18px;font-weight:800}
+    /* --- KPIs --- */
+    .kpis-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .kpi {
+      padding: 12px;
+      background: #181818;
+      border-radius: 6px;
+      border-left: 3px solid #333;
+    }
+    .kpi.total { border-left-color: var(--accent); }
+    .kpi.dentro { border-left-color: var(--good); }
+    .kpi.alerta { border-left-color: var(--warn); }
+    .kpi.atrasado { border-left-color: var(--bad); }
+    
+    .kpi .label { font-size: 10px; color: var(--muted); text-transform: uppercase; font-weight: 600; }
+    .kpi .value { font-size: 22px; font-weight: 700; margin-top: 4px; }
 
-/* PILLS */
-.pill{
-  font-size:10px;
-  display:flex;
-  gap:8px;
-  margin-top:4px;
-}
-.dot{width:6px;height:6px;border-radius:50%}
-.good{background:var(--good)}
-.warn{background:var(--warn)}
-.bad{background:var(--bad)}
-.soft{background:var(--soft)}
+    /* --- FILTROS --- */
+    .filters {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .field { flex: 1; min-width: 140px; }
+    label { display: block; font-size: 10px; color: var(--muted); margin-bottom: 5px; text-transform: uppercase; }
+    select, input {
+      width: 100%;
+      background: #181818;
+      border: 1px solid var(--line);
+      color: #fff;
+      padding: 8px 10px;
+      border-radius: 4px;
+      outline: none;
+      font-size: 13px;
+    }
+    select:focus, input:focus { border-color: var(--accent); }
 
-/* FILTROS */
-.filters{
-  display:flex;
-  gap:8px;
-  flex-wrap:wrap;
-}
-.field{
-  display:flex;
-  flex-direction:column;
-  font-size:11px;
-}
-select,input{
-  padding:6px;
-  border-radius:8px;
-  background:#0b0f14;
-  color:white;
-  border:1px solid var(--line);
-}
+    /* --- TABELA --- */
+    .table-container {
+      overflow: auto;
+      max-height: 450px;
+      border-radius: 4px;
+      background: #0f0f0f;
+    }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    thead th { background: #1a1a1a; padding: 12px; text-align: left; color: var(--muted); position: sticky; top: 0; z-index: 5; font-weight: 600; }
+    tbody td { padding: 10px 12px; border-bottom: 1px solid var(--line); color: #ccc; }
+    tbody tr:hover { background: rgba(255,255,255,0.02); }
+    
+    .status {
+      padding: 3px 6px;
+      border-radius: 3px;
+      font-size: 10px;
+      font-weight: 700;
+    }
+    .status.good { background: rgba(34,197,94,0.15); color: var(--good); }
+    .status.warn { background: rgba(245,158,11,0.15); color: var(--warn); }
+    .status.bad { background: rgba(239,68,68,0.15); color: var(--bad); }
 
-/* GRID */
-.grid{
-  display:grid;
-  grid-template-columns:repeat(3,1fr);
-  gap:8px;
-}
+    .btn {
+      background: var(--accent);
+      color: white;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 4px;
+      font-weight: 700;
+      cursor: pointer;
+      font-size: 12px;
+      transition: 0.2s;
+      text-transform: uppercase;
+    }
+    .btn:hover:not(:disabled) { filter: brightness(1.2); }
+    .btn.secondary { background: #222; color: #eee; }
+    .btn:disabled { opacity: 0.3; cursor: not-allowed; }
 
-/* TABELA */
-table{
-  width:100%;
-  border-collapse:collapse;
-  font-size:12px;
-}
-th,td{
-  padding:6px;
-  border-bottom:1px solid var(--line);
-}
+    /* Cards por Praça */
+    .grid-pracas {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 12px;
+    }
+    .mini-card { background: #181818; padding: 12px; border-radius: 6px; border: 1px solid var(--line); }
+    .mini-card h3 { margin: 0 0 10px; font-size: 12px; color: var(--accent); text-transform: uppercase; }
+    .mini-row { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 5px; color: #aaa; }
+    .mini-row b { color: #fff; }
 
-.status.good{color:var(--good)}
-.status.warn{color:var(--warn)}
-.status.bad{color:var(--bad)}
+    .dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; margin-right: 5px; }
+    .dot.good { background: var(--good); } .dot.warn { background: var(--warn); } .dot.bad { background: var(--bad); }
 
-</style>
+    @media (max-width: 1000px) {
+      main { grid-template-columns: 1fr; }
+    }
+
+    #overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 1000;
+      display: none; align-items: center; justify-content: center; flex-direction: column; gap: 15px;
+    }
+    .spinner { width: 30px; height: 30px; border: 3px solid #333; border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
 </head>
-
 <body>
 
 <header>
-<h1>Chamados N1 em Aberto</h1>
-<p class="sub">SLA 48h</p>
+  <div class="brand">
+    <span>eletromidia</span> <div class="noc">NOC</div>
+  </div>
+  <div class="header-info">N1 Status Monitoring // SLA 48H</div>
 </header>
 
 <main>
+  <div class="sidebar">
+    <div class="card">
+      <div class="drop" id="dropZone" role="button" tabindex="0">
+        <strong>Importar Dados</strong>
+        <span>Arraste o Excel ou clique aqui</span>
+        <input type="file" id="fileInput" hidden accept=".xlsx,.xls,.xlsm" />
+      </div>
+      <div style="margin-top:12px; display:flex; gap:8px;">
+        <button class="btn" style="flex:1" id="pickBtn">Selecionar</button>
+        <button class="btn secondary" id="resetBtn">Limpar</button>
+      </div>
+      <div id="fileInfo" style="font-size:10px; color:var(--muted); margin-top:12px; text-align:center;">Nenhum arquivo carregado.</div>
+    </div>
 
-<section class="row">
+    <div class="card">
+      <div class="kpis-grid">
+        <div class="kpi total"><div class="label">Total</div><div class="value" id="kpiTotal">—</div></div>
+        <div class="kpi dentro"><div class="label">No Prazo</div><div class="value" id="kpiDentro">—</div></div>
+        <div class="kpi alerta"><div class="label">Alerta</div><div class="value" id="kpiProximo">—</div></div>
+        <div class="kpi atrasado"><div class="label">Crítico</div><div class="value" id="kpiEstourado">—</div></div>
+      </div>
+    </div>
 
-<div class="card uploader">
-<div class="drop" id="dropZone">
-<strong>Arraste planilha</strong>
-<span>.xlsx</span>
-</div>
+    <button class="btn" id="exportDetalhadoBtn" disabled>Exportar Relatório</button>
+    <div id="debugInfo" style="font-size:9px; color:#444; margin-top:10px; line-height:1.4;"></div>
+  </div>
 
-<button class="btn" id="pickBtn">Selecionar</button>
-<button class="btn secondary" id="resetBtn">Limpar</button>
+  <div class="content">
+    <div class="card" style="margin-bottom:16px;">
+      <div class="filters">
+        <div class="field">
+          <label>Filtrar Praça</label>
+          <select id="pracaSelect" disabled><option value="">Todas</option></select>
+        </div>
+        <div class="field">
+          <label>Ambiente</label>
+          <select id="ambienteSelect" disabled><option value="">Todos</option></select>
+        </div>
+        <div class="field" style="flex: 2;">
+          <label>Pesquisa Direta</label>
+          <input id="searchInput" type="text" placeholder="Digite Ponto, OS ou Endereço..." disabled />
+        </div>
+      </div>
+    </div>
 
-<div class="pill">
-<div class="dot good"></div>Dentro
-<div class="dot warn"></div>Próximo
-<div class="dot bad"></div>Estourado
-</div>
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+        <h2 style="font-size:14px; margin:0; text-transform:uppercase; letter-spacing:1px;">Fila de Atendimento</h2>
+        <div id="summaryNote" style="font-size:10px; color:var(--muted);"></div>
+      </div>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>OS / ID</th>
+              <th>Praça</th>
+              <th>Ponto de Exibição</th>
+              <th>Data Abertura</th>
+              <th>Tempo Aberto</th>
+              <th>Status SLA</th>
+            </tr>
+          </thead>
+          <tbody id="tbody">
+            <tr><td colspan="6" style="text-align:center; color:#444; padding:60px;">Importe uma planilha para iniciar o monitoramento.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
 
-<input type="file" id="fileInput" hidden>
-</div>
-
-<div class="card kpis">
-<div class="kpi"><div class="label">Total</div><div class="value" id="kpiTotal">—</div></div>
-<div class="kpi"><div class="label">Dentro</div><div class="value" id="kpiDentro">—</div></div>
-<div class="kpi"><div class="label">Próximo</div><div class="value" id="kpiProximo">—</div></div>
-<div class="kpi"><div class="label">Estourado</div><div class="value" id="kpiEstourado">—</div></div>
-</div>
-
-</section>
-
-<section class="card">
-<div class="filters">
-<div class="field">
-<label>Praça</label>
-<select id="pracaSelect"></select>
-</div>
-
-<div class="field">
-<label>Ambiente</label>
-<select id="ambienteSelect"></select>
-</div>
-
-<div class="field">
-<label>Área</label>
-<select id="areaSelect"></select>
-</div>
-
-<div class="field">
-<label>Busca</label>
-<input id="searchInput">
-</div>
-</div>
-</section>
-
-<section class="card">
-<h3>Resumo</h3>
-<div id="cardsPraca" class="grid"></div>
-</section>
-
-<section class="card">
-<h3>Detalhamento</h3>
-<table>
-<thead>
-<tr>
-<th>Nº</th>
-<th>Praça</th>
-<th>Horas</th>
-<th>Status</th>
-</tr>
-</thead>
-<tbody id="tbody"></tbody>
-</table>
-</section>
-
+    <h2 style="font-size:12px; margin: 24px 0 12px; text-transform:uppercase; color:var(--muted); letter-spacing:1px;">Performance por Regional</h2>
+    <div class="grid-pracas" id="cardsPraca"></div>
+  </div>
 </main>
 
-<script>
-// SIMPLIFICADO PARA TESTE VISUAL
-document.getElementById("kpiTotal").textContent = 315;
-document.getElementById("kpiDentro").textContent = 102;
-document.getElementById("kpiProximo").textContent = 41;
-document.getElementById("kpiEstourado").textContent = 172;
-</script>
+<div id="overlay">
+  <div class="spinner"></div>
+  <div id="overlayMsg" style="font-size:13px; font-weight:600;">Lendo arquivo...</div>
+  <div id="overlayProg" style="font-size:11px; color:var(--muted);">0%</div>
+</div>
 
+<script>
+  /* --- CONFIGURAÇÕES --- */
+  const SLA_HOURS = 48;
+  const WARN_FROM_HOURS = 36;
+  const REFRESH_MS = 60000;
+
+  const COLS = {
+    numero: ["nº", "no", "numero", "número", "n°", "os", "ordem", "id"],
+    ponto: ["ponto", "local", "nome do ponto"],
+    endereco: ["endereço", "endereco", "logradouro", "rua"],
+    ambiente: ["ambiente"],
+    praca: ["praça", "praca", "uf", "regional"],
+    area: ["área de trabalho", "area de trabalho", "área", "area"],
+    nivel: ["nível", "nivel", "n1/n2/n3", "level"],
+    criacao: ["data de criação", "data de criacao", "abertura", "data abertura", "data de abertura", "criação", "criacao"]
+  };
+
+  /* --- VARIÁVEIS GLOBAIS --- */
+  let rowsAll = [];
+  let rowsFiltered = [];
+  let refreshTimer = null;
+
+  /* --- UTILITÁRIOS --- */
+  const $ = (id) => document.getElementById(id);
+  const normStr = (v) => (v ?? "").toString().trim();
+  const normKey = (s) => normStr(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\s+/g," ").trim();
+
+  function setLoading(on, msg="Processando", prog=null){
+    $("overlay").style.display = on ? "flex" : "none";
+    if(msg) $("overlayMsg").textContent = msg;
+    if(prog !== null) $("overlayProg").textContent = prog + "%";
+  }
+
+  function hoursDiff(fromDate, toDate){
+    return (toDate.getTime() - fromDate.getTime()) / 36e5;
+  }
+
+  function getBucket(hours){
+    if (hours == null) return "Sem data";
+    if (hours < WARN_FROM_HOURS) return "Dentro do SLA";
+    if (hours < SLA_HOURS) return "Próximo do vencimento";
+    return "Estourado";
+  }
+
+  /* --- CORE LOGIC --- */
+  async function handleFile(file){
+    setLoading(true, "Lendo arquivo...");
+    try {
+      const data = await file.arrayBuffer();
+      const wb = XLSX.read(data, { type: "array", cellDates: true });
+      
+      // Escolhe a melhor aba
+      let bestSheet = wb.SheetNames[0];
+      const ws = wb.Sheets[bestSheet];
+      const json = XLSX.utils.sheet_to_json(ws, { defval: "" });
+
+      if(!json.length) throw new Error("Planilha vazia.");
+
+      // Mapeamento automático de colunas baseado nos headers
+      const headers = Object.keys(json[0]);
+      const mapping = {};
+      for (const [key, aliases] of Object.entries(COLS)) {
+        mapping[key] = headers.find(h => aliases.some(a => normKey(h).includes(normKey(a))));
+      }
+
+      // Filtrar apenas N1 e normalizar
+      rowsAll = json.map(r => {
+        const d = r[mapping.criacao];
+        const dateObj = d instanceof Date ? d : new Date(d);
+        return {
+          numero: r[mapping.numero],
+          ponto: r[mapping.ponto],
+          endereco: r[mapping.endereco],
+          ambiente: r[mapping.ambiente],
+          praca: r[mapping.praca],
+          nivel: normKey(r[mapping.nivel]),
+          criacao: isNaN(dateObj) ? null : dateObj
+        };
+      }).filter(r => r.nivel.includes("n1") || r.nivel === "1");
+
+      disableFilters(false);
+      applyFiltersAndRender();
+      setLoading(false);
+      $("fileInfo").textContent = `Arquivo: ${file.name} (${rowsAll.length} chamados N1)`;
+    } catch (e) {
+      alert("Erro: " + e.message);
+      setLoading(false);
+    }
+  }
+
+  function applyFiltersAndRender(){
+    const now = new Date();
+    const fPraca = $("pracaSelect").value;
+    const fAmb = $("ambienteSelect").value;
+    const q = normKey($("searchInput").value);
+
+    // Atualiza opções dos filtros se estiver vazio
+    if($("pracaSelect").options.length <= 1) {
+        const pracas = [...new Set(rowsAll.map(r => r.praca))].sort();
+        pracas.forEach(p => $("pracaSelect").add(new Option(p, p)));
+        const ambs = [...new Set(rowsAll.map(r => r.ambiente))].sort();
+        ambs.forEach(a => $("ambienteSelect").add(new Option(a, a)));
+    }
+
+    rowsFiltered = rowsAll.map(r => {
+      const hrs = r.criacao ? hoursDiff(r.criacao, now) : null;
+      return { ...r, horasAberto: hrs, statusSLA: getBucket(hrs) };
+    }).filter(r => {
+      if(fPraca && r.praca !== fPraca) return false;
+      if(fAmb && r.ambiente !== fAmb) return false;
+      if(q && !normKey(`${r.ponto} ${r.numero} ${r.endereco}`).includes(q)) return false;
+      return true;
+    });
+
+    render();
+  }
+
+  function render(){
+    // KPIs
+    const d = rowsFiltered.filter(r => r.statusSLA === "Dentro do SLA").length;
+    const p = rowsFiltered.filter(r => r.statusSLA === "Próximo do vencimento").length;
+    const e = rowsFiltered.filter(r => r.statusSLA === "Estourado").length;
+    $("kpiTotal").textContent = rowsFiltered.length;
+    $("kpiDentro").textContent = d;
+    $("kpiProximo").textContent = p;
+    $("kpiEstourado").textContent = e;
+
+    // Tabela
+    const tbody = $("tbody");
+    tbody.innerHTML = rowsFiltered.sort((a,b) => b.horasAberto - a.horasAberto).slice(0, 100).map(r => `
+      <tr>
+        <td><b>${r.numero}</b></td>
+        <td>${r.praca}</td>
+        <td>${r.ponto}</td>
+        <td>${r.criacao ? r.criacao.toLocaleString('pt-BR') : '—'}</td>
+        <td>${r.horasAberto ? Math.floor(r.horasAberto)+'h' : '—'}</td>
+        <td><span class="status ${getStatusClass(r.statusSLA)}">${r.statusSLA}</span></td>
+      </tr>
+    `).join("");
+
+    // Cards Praça
+    const pracaGroup = {};
+    rowsFiltered.forEach(r => {
+        if(!pracaGroup[r.praca]) pracaGroup[r.praca] = {t:0, d:0, p:0, e:0};
+        pracaGroup[r.praca].t++;
+        if(r.statusSLA === "Dentro do SLA") pracaGroup[r.praca].d++;
+        if(r.statusSLA === "Próximo do vencimento") pracaGroup[r.praca].p++;
+        if(r.statusSLA === "Estourado") pracaGroup[r.praca].e++;
+    });
+
+    $("cardsPraca").innerHTML = Object.entries(pracaGroup).map(([name, stat]) => `
+        <div class="mini-card">
+            <h3>${name}</h3>
+            <div class="mini-row"><span>Total</span><b>${stat.t}</b></div>
+            <div class="mini-row"><span><i class="dot good"></i>OK</span><b>${stat.d}</b></div>
+            <div class="mini-row"><span><i class="dot warn"></i>Atenção</span><b>${stat.p}</b></div>
+            <div class="mini-row"><span><i class="dot bad"></i>Crítico</span><b>${stat.e}</b></div>
+        </div>
+    `).join("");
+    
+    $("exportDetalhadoBtn").disabled = rowsFiltered.length === 0;
+  }
+
+  function getStatusClass(s){
+    if(s === "Dentro do SLA") return "good";
+    if(s === "Próximo do vencimento") return "warn";
+    if(s === "Estourado") return "bad";
+    return "";
+  }
+
+  function disableFilters(state){
+    $("pracaSelect").disabled = state;
+    $("ambienteSelect").disabled = state;
+    $("searchInput").disabled = state;
+  }
+
+  /* --- EVENTOS --- */
+  $("pickBtn").onclick = () => $("fileInput").click();
+  $("fileInput").onchange = (e) => e.target.files[0] && handleFile(e.target.files[0]);
+  $("pracaSelect").onchange = applyFiltersAndRender;
+  $("ambienteSelect").onchange = applyFiltersAndRender;
+  $("searchInput").oninput = applyFiltersAndRender;
+  $("resetBtn").onclick = () => location.reload();
+
+  $("dropZone").ondragover = (e) => { e.preventDefault(); e.target.classList.add('hover'); };
+  $("dropZone").ondrop = (e) => { e.preventDefault(); handleFile(e.dataTransfer.files[0]); };
+
+  $("exportDetalhadoBtn").onclick = () => {
+    const ws = XLSX.utils.json_to_sheet(rowsFiltered);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Status_N1");
+    XLSX.writeFile(wb, `NOC_Eletromidia_N1.xlsx`);
+  };
+
+</script>
 </body>
 </html>
