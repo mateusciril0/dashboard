@@ -53,7 +53,6 @@
     .sidebar { display: flex; flex-direction: column; gap: 16px; }
     .card { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 16px; }
 
-    /* DROPZONE REFORÇADA */
     .drop {
       border: 2px dashed #333;
       border-radius: 8px;
@@ -85,7 +84,7 @@
     }
 
     .table-container { overflow: auto; max-height: 500px; background: #0f0f0f; border-radius: 4px; border: 1px solid var(--line); }
-    table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 600px; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 800px; }
     thead th { background: #1a1a1a; padding: 12px; text-align: left; color: var(--muted); position: sticky; top: 0; z-index: 5; }
     tbody td { padding: 10px 12px; border-bottom: 1px solid var(--line); color: #ccc; }
     
@@ -132,7 +131,7 @@
       </div>
       <input type="file" id="fileInput" style="display:none" accept=".xlsx,.xls,.xlsm" />
       <button class="btn secondary" onclick="window.location.reload()">Resetar Sistema</button>
-      <div id="fileStatus" style="font-size:10px; color:var(--muted); margin-top:12px; text-align:center;">Status: Aguardando entrada.</div>
+      <div id="fileStatus" style="font-size:10px; color:var(--muted); margin-top:12px; text-align:center;">Status: Aguardando.</div>
     </div>
 
     <div class="card">
@@ -167,7 +166,7 @@
 
     <div class="card">
       <div class="table-container">
-        <table id="mainTable">
+        <table>
           <thead>
             <tr>
               <th>OS / ID</th>
@@ -191,96 +190,88 @@
 
 <div id="overlay">
   <div class="spinner"></div>
-  <div id="overlayMsg" style="font-weight: 700; letter-spacing: 1px;">PROCESSANDO...</div>
-  <div id="overlayProgress" style="font-size: 11px; color: var(--muted);">0%</div>
+  <div id="overlayMsg">PROCESSANDO...</div>
 </div>
 
 <script>
-/* --- CONFIGURAÇÕES DE MAPEAMENTO (Igual ao original que funcionava) --- */
-const COLS = {
-  numero: ["nº", "no", "numero", "número", "n°", "os", "ordem", "id"],
-  ponto: ["ponto", "local", "nome do ponto"],
-  endereco: ["endereço", "endereco", "logradouro", "rua"],
-  ambiente: ["ambiente"],
-  praca: ["praça", "praca", "uf", "regional"],
-  nivel: ["nível", "nivel", "n1/n2/n3", "level"],
-  criacao: ["data de criação", "data de criacao", "abertura", "data abertura", "data de abertura", "criação", "criacao"]
+/* REGRAS DE LEITURA FIXAS (Baseado na regra de colunas do Excel)
+*/
+const COL_RULES = {
+  numero: ["nº", "numero", "os", "id", "chamado"],
+  ponto: ["ponto", "nome do ponto", "local"],
+  praca: ["praça", "praca", "regional", "uf"],
+  ambiente: ["ambiente", "tipo de ambiente"],
+  nivel: ["nível", "nivel", "equipe"],
+  abertura: ["data de criação", "data de abertura", "abertura", "criado em"]
 };
 
 let rowsAll = [];
 const $ = (id) => document.getElementById(id);
 
-/* --- EVENTOS DE INTERFACE --- */
+// Configuração de Eventos
 const dropZone = $('dropZone');
 const fileInput = $('fileInput');
 
-dropZone.addEventListener('click', () => fileInput.click());
-
-fileInput.addEventListener('change', (e) => {
-  if (e.target.files.length > 0) handleFile(e.target.files[0]);
-});
-
-dropZone.addEventListener('dragover', (e) => {
-  e.preventDefault();
-  dropZone.classList.add('dragover');
-});
-
-dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
-
-dropZone.addEventListener('drop', (e) => {
+dropZone.onclick = () => fileInput.click();
+fileInput.onchange = (e) => e.target.files.length > 0 && handleFile(e.target.files[0]);
+dropZone.ondragover = (e) => { e.preventDefault(); dropZone.classList.add('dragover'); };
+dropZone.ondragleave = () => dropZone.classList.remove('dragover');
+dropZone.ondrop = (e) => {
   e.preventDefault();
   dropZone.classList.remove('dragover');
   if (e.dataTransfer.files.length > 0) handleFile(e.dataTransfer.files[0]);
-});
+};
 
-/* --- PROCESSAMENTO CORE --- */
 function handleFile(file) {
   $('overlay').style.display = 'flex';
-  $('fileStatus').textContent = "Lendo: " + file.name;
-
   const reader = new FileReader();
+
   reader.onload = (e) => {
     try {
       const data = new Uint8Array(e.target.result);
       const workbook = XLSX.read(data, { type: 'array', cellDates: true });
-      
-      // Busca a melhor aba (com mais dados)
-      const sheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[sheetName];
+      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
       const json = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
 
-      if (json.length === 0) throw new Error("A planilha parece estar vazia.");
+      if (!json.length) throw new Error("Planilha vazia.");
 
-      // Identificar Colunas
+      // MAPEAMENTO DINÂMICO DE COLUNAS
       const headers = Object.keys(json[0]);
       const mapping = {};
-      for (const [key, aliases] of Object.entries(COLS)) {
-        mapping[key] = headers.find(h => aliases.some(a => h.toLowerCase().includes(a)));
+      
+      Object.keys(COL_RULES).forEach(key => {
+        mapping[key] = headers.find(h => 
+          COL_RULES[key].some(rule => h.toLowerCase().trim().includes(rule))
+        );
+      });
+
+      // Validação básica de colunas essenciais
+      if (!mapping.abertura || !mapping.nivel) {
+        throw new Error("Não foi possível encontrar as colunas de 'Data' ou 'Nível'. Verifique o cabeçalho.");
       }
 
-      // Processar Linhas
       rowsAll = json.map(r => {
-        const nivelRaw = String(r[mapping.nivel] || "").toLowerCase();
-        const dateRaw = r[mapping.criacao];
-        
-        return {
-          numero: String(r[mapping.numero] || ""),
-          ponto: String(r[mapping.ponto] || ""),
-          praca: String(r[mapping.praca] || "N/A"),
-          ambiente: String(r[mapping.ambiente] || "N/A"),
-          endereco: String(r[mapping.endereco] || ""),
-          nivel: nivelRaw,
-          criacao: dateRaw instanceof Date ? dateRaw : new Date(dateRaw)
-        };
-      }).filter(r => r.nivel.includes("n1") || r.nivel === "1");
+        const nivelStr = String(r[mapping.nivel]).toLowerCase();
+        // Regra: Somente N1
+        if (!nivelStr.includes("n1") && nivelStr !== "1") return null;
 
-      popularFiltros();
+        const dataAbertura = r[mapping.abertura] instanceof Date ? r[mapping.abertura] : new Date(r[mapping.abertura]);
+
+        return {
+          os: String(r[mapping.numero] || "---"),
+          praca: String(r[mapping.praca] || "N/A"),
+          ponto: String(r[mapping.ponto] || "---"),
+          ambiente: String(r[mapping.ambiente] || "---"),
+          abertura: isNaN(dataAbertura) ? null : dataAbertura
+        };
+      }).filter(Boolean);
+
+      atualizarFiltrosUI();
       render();
       $('exportBtn').disabled = false;
-      $('fileStatus').textContent = `Sucesso: ${rowsAll.length} chamados N1.`;
+      $('fileStatus').textContent = `Sucesso: ${rowsAll.length} linhas N1.`;
     } catch (err) {
-      alert("Erro ao processar: " + err.message);
-      $('fileStatus').textContent = "Erro no carregamento.";
+      alert("ERRO: " + err.message);
     } finally {
       $('overlay').style.display = 'none';
     }
@@ -288,87 +279,83 @@ function handleFile(file) {
   reader.readAsArrayBuffer(file);
 }
 
-function popularFiltros() {
+function atualizarFiltrosUI() {
   const pracas = [...new Set(rowsAll.map(r => r.praca))].sort();
   const ambientes = [...new Set(rowsAll.map(r => r.ambiente))].sort();
   
-  const ps = $('pracaSelect');
-  const as = $('ambienteSelect');
+  const sP = $('pracaSelect');
+  const sA = $('ambienteSelect');
 
-  ps.innerHTML = '<option value="">Todas as Praças</option>';
-  as.innerHTML = '<option value="">Todos os Ambientes</option>';
+  sP.innerHTML = '<option value="">Todas as Praças</option>';
+  sA.innerHTML = '<option value="">Todos os Ambientes</option>';
 
-  pracas.forEach(p => ps.add(new Option(p, p)));
-  ambientes.forEach(a => as.add(new Option(a, a)));
+  pracas.forEach(p => sP.add(new Option(p, p)));
+  ambientes.forEach(a => sA.add(new Option(a, a)));
 
-  ps.onchange = render;
-  as.onchange = render;
+  sP.onchange = render;
+  sA.onchange = render;
   $('searchInput').oninput = render;
 }
 
 function render() {
-  const now = new Date();
-  const fPraca = $('pracaSelect').value;
-  const fAmb = $('ambienteSelect').value;
-  const fSearch = $('searchInput').value.toLowerCase();
+  const agora = new Date();
+  const fP = $('pracaSelect').value;
+  const fA = $('ambienteSelect').value;
+  const fS = $('searchInput').value.toLowerCase();
 
-  const filtered = rowsAll.filter(r => {
-    const mP = !fPraca || r.praca === fPraca;
-    const mA = !fAmb || r.ambiente === fAmb;
-    const mS = !fSearch || (r.numero + r.ponto + r.endereco).toLowerCase().includes(fSearch);
-    return mP && mA && mS;
+  const dados = rowsAll.filter(r => {
+    const matchP = !fP || r.praca === fP;
+    const matchA = !fA || r.ambiente === fA;
+    const matchS = !fS || (r.os + r.ponto + r.praca).toLowerCase().includes(fS);
+    return matchP && matchA && matchS;
   }).map(r => {
-    const hrs = r.criacao && !isNaN(r.criacao) ? Math.floor((now - r.criacao) / 36e5) : null;
+    const horas = r.abertura ? Math.floor((agora - r.abertura) / 36e5) : null;
     let status = "Sem data";
-    if (hrs !== null) {
-      if (hrs >= 48) status = "Estourado";
-      else if (hrs >= 36) status = "Próximo do vencimento";
+    if (horas !== null) {
+      if (horas >= 48) status = "Estourado";
+      else if (horas >= 36) status = "Próximo do vencimento";
       else status = "Dentro do SLA";
     }
-    return { ...r, horas: hrs, statusSLA: status };
+    return { ...r, horas, statusSLA: status };
   });
 
   // KPIs
-  $('kpiTotal').textContent = filtered.length;
-  $('kpiDentro').textContent = filtered.filter(f => f.statusSLA === "Dentro do SLA").length;
-  $('kpiProximo').textContent = filtered.filter(f => f.statusSLA === "Próximo do vencimento").length;
-  $('kpiEstourado').textContent = filtered.filter(f => f.statusSLA === "Estourado").length;
+  $('kpiTotal').textContent = dados.length;
+  $('kpiDentro').textContent = dados.filter(d => d.statusSLA === "Dentro do SLA").length;
+  $('kpiProximo').textContent = dados.filter(d => d.statusSLA === "Próximo do vencimento").length;
+  $('kpiEstourado').textContent = dados.filter(d => d.statusSLA === "Estourado").length;
 
   // Tabela
   const tbody = $('tbody');
-  if (filtered.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:40px;">Nenhum chamado encontrado.</td></tr>';
-  } else {
-    tbody.innerHTML = filtered.sort((a,b) => (b.horas || 0) - (a.horas || 0)).slice(0, 200).map(r => `
-      <tr>
-        <td><b>${r.numero}</b></td>
-        <td>${r.praca}</td>
-        <td>${r.ponto}</td>
-        <td>${r.criacao && !isNaN(r.criacao) ? r.criacao.toLocaleString('pt-BR') : '—'}</td>
-        <td>${r.horas !== null ? r.horas + 'h' : '—'}</td>
-        <td><span class="status ${getStatusClass(r.statusSLA)}">${r.statusSLA}</span></td>
-      </tr>
-    `).join("");
-  }
+  tbody.innerHTML = dados.sort((a,b) => (b.horas || 0) - (a.horas || 0)).slice(0, 250).map(d => `
+    <tr>
+      <td><b>${d.os}</b></td>
+      <td>${d.praca}</td>
+      <td>${d.ponto}</td>
+      <td>${d.abertura ? d.abertura.toLocaleString('pt-BR') : '---'}</td>
+      <td>${d.horas !== null ? d.horas + 'h' : '---'}</td>
+      <td><span class="status ${getClass(d.statusSLA)}">${d.statusSLA}</span></td>
+    </tr>
+  `).join("");
 
-  // Cards de Regional
-  const regionalData = {};
-  filtered.forEach(r => {
-    if (!regionalData[r.praca]) regionalData[r.praca] = { total: 0, bad: 0 };
-    regionalData[r.praca].total++;
-    if (r.statusSLA === "Estourado") regionalData[r.praca].bad++;
+  // Cards Praça
+  const regional = {};
+  dados.forEach(d => {
+    if(!regional[d.praca]) regional[d.praca] = {t:0, e:0};
+    regional[d.praca].t++;
+    if(d.statusSLA === "Estourado") regional[d.praca].e++;
   });
 
-  $('cardsPraca').innerHTML = Object.entries(regionalData).map(([name, data]) => `
+  $('cardsPraca').innerHTML = Object.entries(regional).map(([nome, info]) => `
     <div class="mini-card">
-      <h3>${name}</h3>
-      <div class="mini-row"><span>Total N1</span><b>${data.total}</b></div>
-      <div class="mini-row"><span>Estourados</span><b style="color:var(--bad)">${data.bad}</b></div>
+      <h3>${nome}</h3>
+      <div class="mini-row"><span>Total</span><b>${info.t}</b></div>
+      <div class="mini-row"><span>Estourados</span><b style="color:var(--bad)">${info.e}</b></div>
     </div>
   `).join("");
 }
 
-function getStatusClass(s) {
+function getClass(s) {
   if (s === "Dentro do SLA") return "good";
   if (s === "Próximo do vencimento") return "warn";
   if (s === "Estourado") return "bad";
@@ -378,8 +365,8 @@ function getStatusClass(s) {
 function exportarExcel() {
   const ws = XLSX.utils.json_to_sheet(rowsAll);
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Dados_Filtrados");
-  XLSX.writeFile(wb, `NOC_N1_Report.xlsx`);
+  XLSX.utils.book_append_sheet(wb, ws, "Relatorio_NOC");
+  XLSX.writeFile(wb, "NOC_Eletromidia_N1.xlsx");
 }
 </script>
 </body>
