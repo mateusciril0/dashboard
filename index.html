@@ -2,70 +2,22 @@
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Eletromidia NOC — Dashboard N1</title>
-
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-
   <style>
-    :root {
-      --bg: #050505;
-      --card: #121212;
-      --accent: #f05a22; 
-      --text: #ffffff;
-      --muted: #888888;
-      --line: #222222;
-      --good: #22c55e;
-      --warn: #f59e0b;
-      --bad: #ef4444;
-    }
-
+    /* TODO O CSS QUE ENVIAMOS ANTERIORMENTE (TEMA DARK ELETROMIDIA) */
+    :root { --bg: #050505; --card: #121212; --accent: #f05a22; --text: #ffffff; --muted: #888888; --line: #222222; --good: #22c55e; --warn: #f59e0b; --bad: #ef4444; }
     * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      font-family: 'Inter', -apple-system, system-ui, sans-serif;
-      background-color: var(--bg);
-      color: var(--text);
-    }
-
-    header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 12px 20px;
-      background: #000;
-      border-bottom: 1px solid var(--line);
-    }
-
+    body { margin: 0; font-family: 'Inter', sans-serif; background-color: var(--bg); color: var(--text); }
+    header { display: flex; justify-content: space-between; align-items: center; padding: 12px 20px; background: #000; border-bottom: 1px solid var(--line); }
     .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 18px; }
     .brand span { color: var(--accent); }
     .brand .noc { color: var(--text); font-weight: 300; border-left: 1px solid #333; padding-left: 10px; }
-
-    main {
-      max-width: 1600px;
-      margin: 0 auto;
-      padding: 16px;
-      display: grid;
-      grid-template-columns: 320px 1fr;
-      gap: 16px;
-    }
-
+    main { max-width: 1600px; margin: 0 auto; padding: 16px; display: grid; grid-template-columns: 320px 1fr; gap: 16px; }
     .sidebar { display: flex; flex-direction: column; gap: 16px; }
     .card { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 16px; }
-
-    .drop {
-      border: 2px dashed #333;
-      border-radius: 8px;
-      padding: 30px 15px;
-      text-align: center;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      background: rgba(255,255,255,0.01);
-    }
-    .drop:hover, .drop.dragover { border-color: var(--accent); background: rgba(240,90,34,0.05); }
-    .drop strong { display: block; font-size: 13px; margin-bottom: 5px; pointer-events: none; }
-    .drop span { font-size: 11px; color: var(--muted); pointer-events: none; }
-
+    .drop { border: 2px dashed #333; border-radius: 8px; padding: 30px 15px; text-align: center; cursor: pointer; background: rgba(255,255,255,0.01); }
+    .drop.dragover { border-color: var(--accent); background: rgba(240,90,34,0.05); }
     .kpis-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .kpi { padding: 12px; background: #181818; border-radius: 6px; border-left: 3px solid #333; }
     .kpi.total { border-left-color: var(--accent); }
@@ -74,300 +26,191 @@
     .kpi.atrasado { border-left-color: var(--bad); }
     .kpi .label { font-size: 10px; color: var(--muted); text-transform: uppercase; font-weight: 600; }
     .kpi .value { font-size: 22px; font-weight: 700; margin-top: 4px; }
-
     .filters { display: flex; gap: 12px; flex-wrap: wrap; }
     .field { flex: 1; min-width: 140px; }
     label { display: block; font-size: 10px; color: var(--muted); margin-bottom: 5px; text-transform: uppercase; }
-    select, input {
-      width: 100%; background: #181818; border: 1px solid var(--line);
-      color: #fff; padding: 10px; border-radius: 6px; outline: none; font-size: 13px;
-    }
-
+    select, input { width: 100%; background: #181818; border: 1px solid var(--line); color: #fff; padding: 10px; border-radius: 6px; outline: none; font-size: 13px; }
     .table-container { overflow: auto; max-height: 500px; background: #0f0f0f; border-radius: 4px; border: 1px solid var(--line); }
     table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 800px; }
     thead th { background: #1a1a1a; padding: 12px; text-align: left; color: var(--muted); position: sticky; top: 0; z-index: 5; }
     tbody td { padding: 10px 12px; border-bottom: 1px solid var(--line); color: #ccc; }
-    
     .status { padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
     .status.good { background: rgba(34,197,94,0.1); color: var(--good); }
     .status.warn { background: rgba(245,158,11,0.1); color: var(--warn); }
     .status.bad { background: rgba(239,68,68,0.1); color: var(--bad); }
-
-    .btn {
-      background: var(--accent); color: white; border: none; padding: 12px;
-      border-radius: 6px; font-weight: 700; cursor: pointer; font-size: 12px; width: 100%; text-transform: uppercase;
-    }
+    .btn { background: var(--accent); color: white; border: none; padding: 12px; border-radius: 6px; font-weight: 700; cursor: pointer; font-size: 12px; width: 100%; text-transform: uppercase; }
     .btn.secondary { background: #252525; margin-top: 8px; }
-    .btn:disabled { opacity: 0.3; cursor: not-allowed; }
-
     .grid-pracas { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; margin-top: 20px; }
     .mini-card { background: #181818; padding: 14px; border-radius: 8px; border: 1px solid var(--line); }
     .mini-card h3 { margin: 0 0 10px; font-size: 12px; color: var(--accent); text-transform: uppercase; border-bottom: 1px solid #222; padding-bottom: 5px; }
     .mini-row { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 6px; }
-
-    #overlay {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 1000;
-      display: none; align-items: center; justify-content: center; flex-direction: column; gap: 15px;
-    }
+    #overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 1000; display: none; align-items: center; justify-content: center; flex-direction: column; gap: 15px; }
     .spinner { width: 40px; height: 40px; border: 4px solid #333; border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
-
-    @media (max-width: 1100px) { main { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
-
-<header>
-  <div class="brand"><span>eletromidia</span> <div class="noc">NOC</div></div>
-  <div style="font-size: 10px; color: var(--muted); letter-spacing: 1px;">SLA MONITOR v2.6</div>
-</header>
-
-<main>
-  <div class="sidebar">
-    <div class="card">
-      <div class="drop" id="dropZone">
-        <strong>IMPORTAR PLANILHA</strong>
-        <span>Solte o arquivo Excel aqui</span>
-      </div>
-      <input type="file" id="fileInput" style="display:none" accept=".xlsx,.xls,.xlsm" />
-      <button class="btn secondary" onclick="window.location.reload()">Resetar Sistema</button>
-      <div id="fileStatus" style="font-size:10px; color:var(--muted); margin-top:12px; text-align:center;">Status: Aguardando.</div>
-    </div>
-
-    <div class="card">
-      <div class="kpis-grid">
-        <div class="kpi total"><div class="label">Total N1</div><div class="value" id="kpiTotal">0</div></div>
-        <div class="kpi dentro"><div class="label">SLA OK</div><div class="value" id="kpiDentro">0</div></div>
-        <div class="kpi alerta"><div class="label">Alerta</div><div class="value" id="kpiProximo">0</div></div>
-        <div class="kpi atrasado"><div class="label">Crítico</div><div class="value" id="kpiEstourado">0</div></div>
-      </div>
-    </div>
-
-    <button class="btn" id="exportBtn" disabled onclick="exportarExcel()">Exportar Relatório</button>
-  </div>
-
-  <div class="content">
-    <div class="card" style="margin-bottom:16px;">
-      <div class="filters">
-        <div class="field">
-          <label>Praça</label>
-          <select id="pracaSelect"><option value="">Todas as Praças</option></select>
+  <header>
+    <div class="brand"><span>eletromidia</span> <div class="noc">NOC</div></div>
+  </header>
+  <main>
+    <div class="sidebar">
+      <div class="card">
+        <div class="drop" id="dropZone">
+          <strong>IMPORTAR PLANILHA</strong>
+          <span>Solte o arquivo Excel aqui</span>
         </div>
-        <div class="field">
-          <label>Ambiente</label>
-          <select id="ambienteSelect"><option value="">Todos os Ambientes</option></select>
-        </div>
-        <div class="field" style="flex: 2;">
-          <label>Pesquisar</label>
-          <input id="searchInput" type="text" placeholder="Ponto, OS, Endereço..." />
+        <input type="file" id="fileInput" style="display:none" accept=".xlsx,.xls,.xlsm" />
+        <button class="btn secondary" onclick="window.location.reload()">Limpar Tudo</button>
+      </div>
+      <div class="card">
+        <div class="kpis-grid">
+          <div class="kpi total"><div class="label">Total N1</div><div class="value" id="kpiTotal">0</div></div>
+          <div class="kpi dentro"><div class="label">SLA OK</div><div class="value" id="kpiDentro">0</div></div>
+          <div class="kpi alerta"><div class="label">Alerta</div><div class="value" id="kpiProximo">0</div></div>
+          <div class="kpi atrasado"><div class="label">Crítico</div><div class="value" id="kpiEstourado">0</div></div>
         </div>
       </div>
+      <button class="btn" id="exportBtn" disabled onclick="exportarExcel()">Exportar Relatório</button>
     </div>
-
-    <div class="card">
-      <div class="table-container">
-        <table>
-          <thead>
-            <tr>
-              <th>OS / ID</th>
-              <th>Praça</th>
-              <th>Ponto de Exibição</th>
-              <th>Data Abertura</th>
-              <th>Tempo (h)</th>
-              <th>Status SLA</th>
-            </tr>
-          </thead>
-          <tbody id="tbody">
-            <tr><td colspan="6" style="text-align:center; padding:80px; color:#444;">Nenhuma base de dados carregada.</td></tr>
-          </tbody>
-        </table>
+    <div class="content">
+      <div class="card" style="margin-bottom:16px;">
+        <div class="filters">
+          <div class="field"><label>Praça</label><select id="pracaSelect"><option value="">Todas</option></select></div>
+          <div class="field"><label>Ambiente</label><select id="ambienteSelect"><option value="">Todos</option></select></div>
+          <div class="field" style="flex: 2;"><label>Pesquisar</label><input id="searchInput" type="text" placeholder="OS, Ponto ou Endereço..." /></div>
+        </div>
       </div>
+      <div class="card">
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr><th>OS</th><th>Praça</th><th>Ponto de Exibição</th><th>Data Abertura</th><th>Tempo (h)</th><th>Status SLA</th></tr>
+            </thead>
+            <tbody id="tbody"><tr><td colspan="6" style="text-align:center; padding:80px; color:#444;">Aguardando dados...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="grid-pracas" id="cardsPraca"></div>
     </div>
+  </main>
+  <div id="overlay"><div class="spinner"></div><div id="overlayMsg">PROCESSANDO...</div></div>
 
-    <div class="grid-pracas" id="cardsPraca"></div>
-  </div>
-</main>
+  <script>
+    /* --- BACKEND ORIGINAL INTEGRADO --- */
+    const SINONIMOS = {
+      numero: ["nº", "numero", "os", "id", "chamado"],
+      ponto: ["ponto", "local", "exibição", "nome"],
+      praca: ["praça", "praca", "regional", "uf", "cidade"],
+      ambiente: ["ambiente", "tipo"],
+      nivel: ["nível", "nivel", "equipe", "grupo"],
+      abertura: ["criação", "abertura", "data", "criado"]
+    };
 
-<div id="overlay">
-  <div class="spinner"></div>
-  <div id="overlayMsg">PROCESSANDO...</div>
-</div>
+    let rowsAll = [];
+    const $ = (id) => document.getElementById(id);
 
-<script>
-/* REGRAS DE LEITURA FIXAS (Baseado na regra de colunas do Excel)
-*/
-const COL_RULES = {
-  numero: ["nº", "numero", "os", "id", "chamado"],
-  ponto: ["ponto", "nome do ponto", "local"],
-  praca: ["praça", "praca", "regional", "uf"],
-  ambiente: ["ambiente", "tipo de ambiente"],
-  nivel: ["nível", "nivel", "equipe"],
-  abertura: ["data de criação", "data de abertura", "abertura", "criado em"]
-};
+    // Eventos de Interface
+    const dropZone = $('dropZone');
+    const fileInput = $('fileInput');
+    dropZone.onclick = () => fileInput.click();
+    fileInput.onchange = (e) => e.target.files.length > 0 && handleFile(e.target.files[0]);
+    dropZone.ondragover = (e) => { e.preventDefault(); dropZone.classList.add('dragover'); };
+    dropZone.ondragleave = () => dropZone.classList.remove('dragover');
+    dropZone.ondrop = (e) => { e.preventDefault(); dropZone.classList.remove('dragover'); handleFile(e.dataTransfer.files[0]); };
 
-let rowsAll = [];
-const $ = (id) => document.getElementById(id);
+    function handleFile(file) {
+      $('overlay').style.display = 'flex';
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: 'array', cellDates: true });
+          const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+          const json = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
 
-// Configuração de Eventos
-const dropZone = $('dropZone');
-const fileInput = $('fileInput');
+          if (!json.length) throw new Error("Planilha vazia.");
 
-dropZone.onclick = () => fileInput.click();
-fileInput.onchange = (e) => e.target.files.length > 0 && handleFile(e.target.files[0]);
-dropZone.ondragover = (e) => { e.preventDefault(); dropZone.classList.add('dragover'); };
-dropZone.ondragleave = () => dropZone.classList.remove('dragover');
-dropZone.ondrop = (e) => {
-  e.preventDefault();
-  dropZone.classList.remove('dragover');
-  if (e.dataTransfer.files.length > 0) handleFile(e.dataTransfer.files[0]);
-};
+          const headers = Object.keys(json[0]);
+          const mapping = {};
+          Object.keys(SINONIMOS).forEach(key => {
+            mapping[key] = headers.find(h => SINONIMOS[key].some(s => h.toLowerCase().trim().includes(s)));
+          });
 
-function handleFile(file) {
-  $('overlay').style.display = 'flex';
-  const reader = new FileReader();
+          rowsAll = json.map(r => {
+            const nivel = String(r[mapping.nivel] || "").toLowerCase();
+            if (!nivel.includes("n1") && nivel !== "1") return null;
 
-  reader.onload = (e) => {
-    try {
-      const data = new Uint8Array(e.target.result);
-      const workbook = XLSX.read(data, { type: 'array', cellDates: true });
-      const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-      const json = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
+            let dt = r[mapping.abertura];
+            if (!(dt instanceof Date)) dt = new Date(dt);
 
-      if (!json.length) throw new Error("Planilha vazia.");
+            return {
+              os: String(r[mapping.numero] || "---"),
+              praca: String(r[mapping.praca] || "N/A"),
+              ponto: String(r[mapping.ponto] || "---"),
+              ambiente: String(r[mapping.ambiente] || "---"),
+              abertura: isNaN(dt) ? null : dt
+            };
+          }).filter(Boolean);
 
-      // MAPEAMENTO DINÂMICO DE COLUNAS
-      const headers = Object.keys(json[0]);
-      const mapping = {};
+          atualizarFiltros();
+          render();
+          $('exportBtn').disabled = false;
+        } catch (err) { alert("Erro: " + err.message); }
+        finally { $('overlay').style.display = 'none'; }
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    function atualizarFiltros() {
+      const ps = $('pracaSelect'); const as = $('ambienteSelect');
+      const pracas = [...new Set(rowsAll.map(r => r.praca))].sort();
+      const ambs = [...new Set(rowsAll.map(r => r.ambiente))].sort();
+      ps.innerHTML = '<option value="">Todas</option>';
+      as.innerHTML = '<option value="">Todos</option>';
+      pracas.forEach(p => ps.add(new Option(p, p)));
+      ambs.forEach(a => as.add(new Option(a, a)));
+      ps.onchange = render; as.onchange = render; $('searchInput').oninput = render;
+    }
+
+    function render() {
+      const agora = new Date();
+      const fp = $('pracaSelect').value; const fa = $('ambienteSelect').value; const fs = $('searchInput').value.toLowerCase();
       
-      Object.keys(COL_RULES).forEach(key => {
-        mapping[key] = headers.find(h => 
-          COL_RULES[key].some(rule => h.toLowerCase().trim().includes(rule))
-        );
+      const filtered = rowsAll.filter(r => {
+        return (!fp || r.praca === fp) && (!fa || r.ambiente === fa) && (!fs || (r.os + r.ponto).toLowerCase().includes(fs));
+      }).map(r => {
+        const hrs = r.abertura ? Math.floor((agora - r.abertura) / 36e5) : null;
+        let status = "Estourado";
+        if (hrs === null) status = "Sem data";
+        else if (hrs < 36) status = "Dentro do SLA";
+        else if (hrs < 48) status = "Próximo do vencimento";
+        return { ...r, horas: hrs, statusSLA: status };
       });
 
-      // Validação básica de colunas essenciais
-      if (!mapping.abertura || !mapping.nivel) {
-        throw new Error("Não foi possível encontrar as colunas de 'Data' ou 'Nível'. Verifique o cabeçalho.");
-      }
+      $('kpiTotal').textContent = filtered.length;
+      $('kpiDentro').textContent = filtered.filter(f => f.statusSLA === "Dentro do SLA").length;
+      $('kpiProximo').textContent = filtered.filter(f => f.statusSLA === "Próximo do vencimento").length;
+      $('kpiEstourado').textContent = filtered.filter(f => f.statusSLA === "Estourado").length;
 
-      rowsAll = json.map(r => {
-        const nivelStr = String(r[mapping.nivel]).toLowerCase();
-        // Regra: Somente N1
-        if (!nivelStr.includes("n1") && nivelStr !== "1") return null;
-
-        const dataAbertura = r[mapping.abertura] instanceof Date ? r[mapping.abertura] : new Date(r[mapping.abertura]);
-
-        return {
-          os: String(r[mapping.numero] || "---"),
-          praca: String(r[mapping.praca] || "N/A"),
-          ponto: String(r[mapping.ponto] || "---"),
-          ambiente: String(r[mapping.ambiente] || "---"),
-          abertura: isNaN(dataAbertura) ? null : dataAbertura
-        };
-      }).filter(Boolean);
-
-      atualizarFiltrosUI();
-      render();
-      $('exportBtn').disabled = false;
-      $('fileStatus').textContent = `Sucesso: ${rowsAll.length} linhas N1.`;
-    } catch (err) {
-      alert("ERRO: " + err.message);
-    } finally {
-      $('overlay').style.display = 'none';
+      $('tbody').innerHTML = filtered.sort((a,b) => (b.horas || 0) - (a.horas || 0)).slice(0, 200).map(d => `
+        <tr>
+          <td><b>${d.os}</b></td><td>${d.praca}</td><td>${d.ponto}</td>
+          <td>${d.abertura ? d.abertura.toLocaleString('pt-BR') : '---'}</td>
+          <td>${d.horas !== null ? d.horas + 'h' : '---'}</td>
+          <td><span class="status ${d.statusSLA === "Dentro do SLA" ? "good" : d.statusSLA === "Estourado" ? "bad" : "warn"}">${d.statusSLA}</span></td>
+        </tr>`).join("");
+      
+      const reg = {}; filtered.forEach(d => { if(!reg[d.praca]) reg[d.praca] = {t:0, e:0}; reg[d.praca].t++; if(d.statusSLA === "Estourado") reg[d.praca].e++; });
+      $('cardsPraca').innerHTML = Object.entries(reg).map(([n, i]) => `<div class="mini-card"><h3>${n}</h3><div class="mini-row"><span>Total</span><b>${i.t}</b></div><div class="mini-row"><span>Críticos</span><b style="color:var(--bad)">${i.e}</b></div></div>`).join("");
     }
-  };
-  reader.readAsArrayBuffer(file);
-}
 
-function atualizarFiltrosUI() {
-  const pracas = [...new Set(rowsAll.map(r => r.praca))].sort();
-  const ambientes = [...new Set(rowsAll.map(r => r.ambiente))].sort();
-  
-  const sP = $('pracaSelect');
-  const sA = $('ambienteSelect');
-
-  sP.innerHTML = '<option value="">Todas as Praças</option>';
-  sA.innerHTML = '<option value="">Todos os Ambientes</option>';
-
-  pracas.forEach(p => sP.add(new Option(p, p)));
-  ambientes.forEach(a => sA.add(new Option(a, a)));
-
-  sP.onchange = render;
-  sA.onchange = render;
-  $('searchInput').oninput = render;
-}
-
-function render() {
-  const agora = new Date();
-  const fP = $('pracaSelect').value;
-  const fA = $('ambienteSelect').value;
-  const fS = $('searchInput').value.toLowerCase();
-
-  const dados = rowsAll.filter(r => {
-    const matchP = !fP || r.praca === fP;
-    const matchA = !fA || r.ambiente === fA;
-    const matchS = !fS || (r.os + r.ponto + r.praca).toLowerCase().includes(fS);
-    return matchP && matchA && matchS;
-  }).map(r => {
-    const horas = r.abertura ? Math.floor((agora - r.abertura) / 36e5) : null;
-    let status = "Sem data";
-    if (horas !== null) {
-      if (horas >= 48) status = "Estourado";
-      else if (horas >= 36) status = "Próximo do vencimento";
-      else status = "Dentro do SLA";
+    function exportarExcel() {
+      const ws = XLSX.utils.json_to_sheet(rowsAll);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Relatorio");
+      XLSX.writeFile(wb, "NOC_Report.xlsx");
     }
-    return { ...r, horas, statusSLA: status };
-  });
-
-  // KPIs
-  $('kpiTotal').textContent = dados.length;
-  $('kpiDentro').textContent = dados.filter(d => d.statusSLA === "Dentro do SLA").length;
-  $('kpiProximo').textContent = dados.filter(d => d.statusSLA === "Próximo do vencimento").length;
-  $('kpiEstourado').textContent = dados.filter(d => d.statusSLA === "Estourado").length;
-
-  // Tabela
-  const tbody = $('tbody');
-  tbody.innerHTML = dados.sort((a,b) => (b.horas || 0) - (a.horas || 0)).slice(0, 250).map(d => `
-    <tr>
-      <td><b>${d.os}</b></td>
-      <td>${d.praca}</td>
-      <td>${d.ponto}</td>
-      <td>${d.abertura ? d.abertura.toLocaleString('pt-BR') : '---'}</td>
-      <td>${d.horas !== null ? d.horas + 'h' : '---'}</td>
-      <td><span class="status ${getClass(d.statusSLA)}">${d.statusSLA}</span></td>
-    </tr>
-  `).join("");
-
-  // Cards Praça
-  const regional = {};
-  dados.forEach(d => {
-    if(!regional[d.praca]) regional[d.praca] = {t:0, e:0};
-    regional[d.praca].t++;
-    if(d.statusSLA === "Estourado") regional[d.praca].e++;
-  });
-
-  $('cardsPraca').innerHTML = Object.entries(regional).map(([nome, info]) => `
-    <div class="mini-card">
-      <h3>${nome}</h3>
-      <div class="mini-row"><span>Total</span><b>${info.t}</b></div>
-      <div class="mini-row"><span>Estourados</span><b style="color:var(--bad)">${info.e}</b></div>
-    </div>
-  `).join("");
-}
-
-function getClass(s) {
-  if (s === "Dentro do SLA") return "good";
-  if (s === "Próximo do vencimento") return "warn";
-  if (s === "Estourado") return "bad";
-  return "";
-}
-
-function exportarExcel() {
-  const ws = XLSX.utils.json_to_sheet(rowsAll);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "Relatorio_NOC");
-  XLSX.writeFile(wb, "NOC_Eletromidia_N1.xlsx");
-}
-</script>
+  </script>
 </body>
 </html>
