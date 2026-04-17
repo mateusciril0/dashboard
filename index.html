@@ -2,215 +2,845 @@
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Eletromidia NOC — Dashboard N1</title>
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
   <style>
-    /* TODO O CSS QUE ENVIAMOS ANTERIORMENTE (TEMA DARK ELETROMIDIA) */
-    :root { --bg: #050505; --card: #121212; --accent: #f05a22; --text: #ffffff; --muted: #888888; --line: #222222; --good: #22c55e; --warn: #f59e0b; --bad: #ef4444; }
+    /* --- CORES E TEMA ELETROMIDIA --- */
+    :root {
+      --bg: #050505;
+      --card: #121212;
+      --accent: #f05a22; /* Laranja Eletromidia */
+      --text: #ffffff;
+      --muted: #888888;
+      --line: #222222;
+      --good: #22c55e;
+      --warn: #f59e0b;
+      --bad: #ef4444;
+      --soft: #64748b;
+    }
+
     * { box-sizing: border-box; }
-    body { margin: 0; font-family: 'Inter', sans-serif; background-color: var(--bg); color: var(--text); }
-    header { display: flex; justify-content: space-between; align-items: center; padding: 12px 20px; background: #000; border-bottom: 1px solid var(--line); }
+    
+    body {
+      margin: 0;
+      font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+    }
+
+    /* --- HEADER COMPACTO --- */
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 20px;
+      background: #000;
+      border-bottom: 1px solid var(--line);
+    }
+
     .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 18px; }
     .brand span { color: var(--accent); }
     .brand .noc { color: var(--text); font-weight: 300; border-left: 1px solid #333; padding-left: 10px; }
-    main { max-width: 1600px; margin: 0 auto; padding: 16px; display: grid; grid-template-columns: 320px 1fr; gap: 16px; }
+
+    /* --- LAYOUT PRINCIPAL (SIDEBAR + CONTEÚDO) --- */
+    main {
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: 16px;
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 16px;
+    }
+
     .sidebar { display: flex; flex-direction: column; gap: 16px; }
-    .card { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 16px; }
-    .drop { border: 2px dashed #333; border-radius: 8px; padding: 30px 15px; text-align: center; cursor: pointer; background: rgba(255,255,255,0.01); }
-    .drop.dragover { border-color: var(--accent); background: rgba(240,90,34,0.05); }
-    .kpis-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .content { display: flex; flex-direction: column; gap: 16px; }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+    }
+
+    /* --- UPLOADER (DROPZONE) --- */
+    .uploader { position: relative; }
+    .drop {
+      border: 2px dashed #333;
+      border-radius: 8px;
+      padding: 30px 15px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      background: rgba(255,255,255,0.01);
+    }
+    .drop:hover { border-color: var(--accent); background: rgba(240,90,34,0.05); }
+    .drop strong { display: block; font-size: 13px; margin-bottom: 5px; color: var(--text); }
+    .drop span { font-size: 11px; color: var(--muted); }
+    input[type=file] { display: none; }
+
+    /* --- BOTÕES --- */
+    .btn-group { display: flex; gap: 8px; margin-top: 12px; }
+    .btn {
+      background: var(--accent); color: white; border: none; padding: 10px 12px;
+      border-radius: 6px; font-weight: 700; cursor: pointer; font-size: 12px; flex: 1;
+      text-transform: uppercase; text-align: center;
+    }
+    .btn.secondary { background: #252525; color: #eee; }
+    .btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+    .note { font-size: 10px; color: var(--muted); margin-top: 10px; text-align: center; line-height: 1.4; }
+
+    /* --- KPIS --- */
+    .kpis { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     .kpi { padding: 12px; background: #181818; border-radius: 6px; border-left: 3px solid #333; }
-    .kpi.total { border-left-color: var(--accent); }
-    .kpi.dentro { border-left-color: var(--good); }
-    .kpi.alerta { border-left-color: var(--warn); }
-    .kpi.atrasado { border-left-color: var(--bad); }
+    .kpi:nth-child(1) { border-left-color: var(--accent); }
+    .kpi:nth-child(2) { border-left-color: var(--good); }
+    .kpi:nth-child(3) { border-left-color: var(--warn); }
+    .kpi:nth-child(4) { border-left-color: var(--bad); }
     .kpi .label { font-size: 10px; color: var(--muted); text-transform: uppercase; font-weight: 600; }
     .kpi .value { font-size: 22px; font-weight: 700; margin-top: 4px; }
+
+    /* --- FILTROS --- */
     .filters { display: flex; gap: 12px; flex-wrap: wrap; }
-    .field { flex: 1; min-width: 140px; }
-    label { display: block; font-size: 10px; color: var(--muted); margin-bottom: 5px; text-transform: uppercase; }
-    select, input { width: 100%; background: #181818; border: 1px solid var(--line); color: #fff; padding: 10px; border-radius: 6px; outline: none; font-size: 13px; }
-    .table-container { overflow: auto; max-height: 500px; background: #0f0f0f; border-radius: 4px; border: 1px solid var(--line); }
-    table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 800px; }
-    thead th { background: #1a1a1a; padding: 12px; text-align: left; color: var(--muted); position: sticky; top: 0; z-index: 5; }
-    tbody td { padding: 10px 12px; border-bottom: 1px solid var(--line); color: #ccc; }
-    .status { padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
+    .field { flex: 1; min-width: 140px; display: flex; flex-direction: column; gap: 5px; }
+    label { font-size: 10px; color: var(--muted); text-transform: uppercase; }
+    select, input[type="text"] {
+      width: 100%; background: #181818; border: 1px solid var(--line);
+      color: #fff; padding: 10px; border-radius: 6px; outline: none; font-size: 12px;
+    }
+
+    /* --- TABELA E STATUS (Classes geradas pelo seu JS) --- */
+    .table-wrapper { overflow: auto; max-height: 50vh; background: #0f0f0f; border-radius: 4px; border: 1px solid var(--line); }
+    table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 12px; min-width: 900px; }
+    thead th { background: #1a1a1a; padding: 12px; text-align: left; color: var(--muted); position: sticky; top: 0; font-weight: 600; border-bottom: 1px solid var(--line); z-index: 5; }
+    tbody td { padding: 10px 12px; border-bottom: 1px solid var(--line); color: #ccc; vertical-align: middle; }
+    .right { text-align: right; }
+    
+    .status { padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
     .status.good { background: rgba(34,197,94,0.1); color: var(--good); }
     .status.warn { background: rgba(245,158,11,0.1); color: var(--warn); }
     .status.bad { background: rgba(239,68,68,0.1); color: var(--bad); }
-    .btn { background: var(--accent); color: white; border: none; padding: 12px; border-radius: 6px; font-weight: 700; cursor: pointer; font-size: 12px; width: 100%; text-transform: uppercase; }
-    .btn.secondary { background: #252525; margin-top: 8px; }
-    .grid-pracas { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; margin-top: 20px; }
-    .mini-card { background: #181818; padding: 14px; border-radius: 8px; border: 1px solid var(--line); }
-    .mini-card h3 { margin: 0 0 10px; font-size: 12px; color: var(--accent); text-transform: uppercase; border-bottom: 1px solid #222; padding-bottom: 5px; }
-    .mini-row { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 6px; }
-    #overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 1000; display: none; align-items: center; justify-content: center; flex-direction: column; gap: 15px; }
-    .spinner { width: 40px; height: 40px; border: 4px solid #333; border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    .status.soft { background: rgba(100,116,139,0.1); color: var(--soft); }
+
+    /* --- CARDS GERADOS PELO SEU JS (.card.mini) --- */
+    .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin-top: 10px; }
+    .card.mini { background: #181818; padding: 14px; border-radius: 8px; border: 1px solid var(--line); box-shadow: none; }
+    .card.mini h3 { margin: 0 0 10px; font-size: 12px; color: var(--accent); text-transform: uppercase; border-bottom: 1px solid #222; padding-bottom: 5px; }
+    .card.mini .meta { color: var(--muted); font-size: 11px; margin-bottom: 10px; }
+    .card.mini .line { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 6px; padding: 2px 0; border: none; color: #aaa; }
+    .card.mini .line b { color: #fff; }
+
+    .dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+    .dot.good { background: var(--good); } .dot.warn { background: var(--warn); } .dot.bad { background: var(--bad); } .dot.soft { background: var(--soft); }
+
+    /* --- OVERLAY DO SEU JS --- */
+    .overlay { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; backdrop-filter: blur(4px); background: rgba(0,0,0,.7); border-radius: 8px; z-index: 10; }
+    .overlay.show { display: flex; }
+    .overlayBox { display: flex; align-items: center; gap: 15px; padding: 15px 20px; border: 1px solid var(--accent); background: #111; border-radius: 8px; box-shadow: 0 8px 20px rgba(0,0,0,.5); }
+    .spinner { width: 24px; height: 24px; border: 3px solid rgba(255,255,255,.1); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+    .prog { margin-left: 10px; font-size: 14px; color: var(--accent); font-weight: bold; }
     @keyframes spin { to { transform: rotate(360deg); } }
+
+    .muted { color: var(--muted); }
+
+    @media (max-width: 1000px) { main { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
-  <header>
-    <div class="brand"><span>eletromidia</span> <div class="noc">NOC</div></div>
-  </header>
-  <main>
-    <div class="sidebar">
-      <div class="card">
-        <div class="drop" id="dropZone">
-          <strong>IMPORTAR PLANILHA</strong>
-          <span>Solte o arquivo Excel aqui</span>
+
+<header>
+  <div class="brand">
+    <span>eletromidia</span> <div class="noc">NOC</div>
+  </div>
+  <div style="font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px;">SLA 48h Monitor</div>
+</header>
+
+<main>
+  <div class="sidebar">
+    <div class="card uploader">
+      <div class="overlay" id="overlay">
+        <div class="overlayBox">
+          <div class="spinner"></div>
+          <div>
+            <div style="font-weight:800; font-size:13px; text-transform:uppercase;">Processando</div>
+            <div class="muted" id="overlayMsg" style="font-size:11px;">Lendo arquivo</div>
+          </div>
+          <div class="prog" id="overlayProg">0%</div>
         </div>
-        <input type="file" id="fileInput" style="display:none" accept=".xlsx,.xls,.xlsm" />
-        <button class="btn secondary" onclick="window.location.reload()">Limpar Tudo</button>
       </div>
-      <div class="card">
-        <div class="kpis-grid">
-          <div class="kpi total"><div class="label">Total N1</div><div class="value" id="kpiTotal">0</div></div>
-          <div class="kpi dentro"><div class="label">SLA OK</div><div class="value" id="kpiDentro">0</div></div>
-          <div class="kpi alerta"><div class="label">Alerta</div><div class="value" id="kpiProximo">0</div></div>
-          <div class="kpi atrasado"><div class="label">Crítico</div><div class="value" id="kpiEstourado">0</div></div>
-        </div>
+
+      <div class="drop" id="dropZone" role="button" tabindex="0" aria-label="Selecionar planilha">
+        <strong>IMPORTAR PLANILHA</strong>
+        <span>Arraste e solte o Excel aqui</span>
+        <div class="note" id="fileInfo">Aguardando arquivo...</div>
+        <div class="note" id="debugInfo" style="display:none; color:var(--accent);"></div>
       </div>
-      <button class="btn" id="exportBtn" disabled onclick="exportarExcel()">Exportar Relatório</button>
+
+      <div class="btn-group">
+        <button class="btn" id="pickBtn">Selecionar Arquivo</button>
+        <button class="btn secondary" id="resetBtn">Limpar</button>
+      </div>
+      <input type="file" id="fileInput" accept=".xlsx,.xls,.xlsm" />
     </div>
-    <div class="content">
-      <div class="card" style="margin-bottom:16px;">
-        <div class="filters">
-          <div class="field"><label>Praça</label><select id="pracaSelect"><option value="">Todas</option></select></div>
-          <div class="field"><label>Ambiente</label><select id="ambienteSelect"><option value="">Todos</option></select></div>
-          <div class="field" style="flex: 2;"><label>Pesquisar</label><input id="searchInput" type="text" placeholder="OS, Ponto ou Endereço..." /></div>
-        </div>
+
+    <div class="card">
+      <div class="kpis">
+        <div class="kpi"><div class="label">Total (N1)</div><div class="value" id="kpiTotal">—</div></div>
+        <div class="kpi"><div class="label">No Prazo</div><div class="value" id="kpiDentro">—</div></div>
+        <div class="kpi"><div class="label">Atenção</div><div class="value" id="kpiProximo">—</div></div>
+        <div class="kpi"><div class="label">Estourado</div><div class="value" id="kpiEstourado">—</div></div>
       </div>
-      <div class="card">
-        <div class="table-container">
-          <table>
-            <thead>
-              <tr><th>OS</th><th>Praça</th><th>Ponto de Exibição</th><th>Data Abertura</th><th>Tempo (h)</th><th>Status SLA</th></tr>
-            </thead>
-            <tbody id="tbody"><tr><td colspan="6" style="text-align:center; padding:80px; color:#444;">Aguardando dados...</td></tr></tbody>
-          </table>
-        </div>
-      </div>
-      <div class="grid-pracas" id="cardsPraca"></div>
     </div>
-  </main>
-  <div id="overlay"><div class="spinner"></div><div id="overlayMsg">PROCESSANDO...</div></div>
 
-  <script>
-    /* --- BACKEND ORIGINAL INTEGRADO --- */
-    const SINONIMOS = {
-      numero: ["nº", "numero", "os", "id", "chamado"],
-      ponto: ["ponto", "local", "exibição", "nome"],
-      praca: ["praça", "praca", "regional", "uf", "cidade"],
-      ambiente: ["ambiente", "tipo"],
-      nivel: ["nível", "nivel", "equipe", "grupo"],
-      abertura: ["criação", "abertura", "data", "criado"]
-    };
+    <div class="card">
+      <div style="font-size:10px; color:var(--muted); margin-bottom:10px; text-transform:uppercase;">Exportar Dados</div>
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <button class="btn" id="exportDetalhadoBtn" disabled>Baixar Base Filtrada</button>
+        <button class="btn secondary" id="exportResumoBtn" disabled>Baixar Resumo por Praça</button>
+      </div>
+    </div>
+  </div>
 
-    let rowsAll = [];
-    const $ = (id) => document.getElementById(id);
+  <div class="content">
+    <div class="card">
+      <div class="filters">
+        <div class="field">
+          <label for="pracaSelect">Praça</label>
+          <select id="pracaSelect" disabled><option value="">Todas</option></select>
+        </div>
+        <div class="field">
+          <label for="ambienteSelect">Ambiente</label>
+          <select id="ambienteSelect" disabled><option value="">Todos</option></select>
+        </div>
+        <div class="field">
+          <label for="areaSelect">Área de Trabalho</label>
+          <select id="areaSelect" disabled><option value="">Todas</option></select>
+        </div>
+        <div class="field" style="flex: 2; min-width: 250px;">
+          <label for="searchInput">Pesquisa Rápida</label>
+          <input id="searchInput" type="text" placeholder="Ponto, Endereço ou Nº OS..." disabled />
+        </div>
+      </div>
+    </div>
 
-    // Eventos de Interface
-    const dropZone = $('dropZone');
-    const fileInput = $('fileInput');
-    dropZone.onclick = () => fileInput.click();
-    fileInput.onchange = (e) => e.target.files.length > 0 && handleFile(e.target.files[0]);
-    dropZone.ondragover = (e) => { e.preventDefault(); dropZone.classList.add('dragover'); };
-    dropZone.ondragleave = () => dropZone.classList.remove('dragover');
-    dropZone.ondrop = (e) => { e.preventDefault(); dropZone.classList.remove('dragover'); handleFile(e.dataTransfer.files[0]); };
-
-    function handleFile(file) {
-      $('overlay').style.display = 'flex';
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        try {
-          const data = new Uint8Array(e.target.result);
-          const workbook = XLSX.read(data, { type: 'array', cellDates: true });
-          const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-          const json = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
-
-          if (!json.length) throw new Error("Planilha vazia.");
-
-          const headers = Object.keys(json[0]);
-          const mapping = {};
-          Object.keys(SINONIMOS).forEach(key => {
-            mapping[key] = headers.find(h => SINONIMOS[key].some(s => h.toLowerCase().trim().includes(s)));
-          });
-
-          rowsAll = json.map(r => {
-            const nivel = String(r[mapping.nivel] || "").toLowerCase();
-            if (!nivel.includes("n1") && nivel !== "1") return null;
-
-            let dt = r[mapping.abertura];
-            if (!(dt instanceof Date)) dt = new Date(dt);
-
-            return {
-              os: String(r[mapping.numero] || "---"),
-              praca: String(r[mapping.praca] || "N/A"),
-              ponto: String(r[mapping.ponto] || "---"),
-              ambiente: String(r[mapping.ambiente] || "---"),
-              abertura: isNaN(dt) ? null : dt
-            };
-          }).filter(Boolean);
-
-          atualizarFiltros();
-          render();
-          $('exportBtn').disabled = false;
-        } catch (err) { alert("Erro: " + err.message); }
-        finally { $('overlay').style.display = 'none'; }
-      };
-      reader.readAsArrayBuffer(file);
-    }
-
-    function atualizarFiltros() {
-      const ps = $('pracaSelect'); const as = $('ambienteSelect');
-      const pracas = [...new Set(rowsAll.map(r => r.praca))].sort();
-      const ambs = [...new Set(rowsAll.map(r => r.ambiente))].sort();
-      ps.innerHTML = '<option value="">Todas</option>';
-      as.innerHTML = '<option value="">Todos</option>';
-      pracas.forEach(p => ps.add(new Option(p, p)));
-      ambs.forEach(a => as.add(new Option(a, a)));
-      ps.onchange = render; as.onchange = render; $('searchInput').oninput = render;
-    }
-
-    function render() {
-      const agora = new Date();
-      const fp = $('pracaSelect').value; const fa = $('ambienteSelect').value; const fs = $('searchInput').value.toLowerCase();
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <h2 style="margin:0; font-size:14px; text-transform:uppercase; color:var(--accent);">Fila de Atendimento</h2>
+        <div class="note" id="summaryNote" style="margin:0;">Carregue uma planilha para ver o resumo.</div>
+      </div>
       
-      const filtered = rowsAll.filter(r => {
-        return (!fp || r.praca === fp) && (!fa || r.ambiente === fa) && (!fs || (r.os + r.ponto).toLowerCase().includes(fs));
-      }).map(r => {
-        const hrs = r.abertura ? Math.floor((agora - r.abertura) / 36e5) : null;
-        let status = "Estourado";
-        if (hrs === null) status = "Sem data";
-        else if (hrs < 36) status = "Dentro do SLA";
-        else if (hrs < 48) status = "Próximo do vencimento";
-        return { ...r, horas: hrs, statusSLA: status };
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>Nº</th>
+              <th>Praça</th>
+              <th>Ambiente</th>
+              <th>Área de Trabalho</th>
+              <th>Ponto</th>
+              <th>Endereço</th>
+              <th>Data de Criação</th>
+              <th class="right">Horas Aberto</th>
+              <th>Status SLA</th>
+            </tr>
+          </thead>
+          <tbody id="tbody">
+            <tr><td colspan="9" class="muted" style="text-align:center; padding:40px;">Aguardando base de dados...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card" style="background:transparent; border:none; padding:0;">
+      <h2 style="margin:0; font-size:14px; text-transform:uppercase; color:var(--muted);">Resumo por Praça / Regional</h2>
+      <div class="grid" id="cardsPraca"></div>
+    </div>
+  </div>
+</main>
+
+<script>
+  const SLA_HOURS = 48;
+  const WARN_FROM_HOURS = 36;
+  const REFRESH_MS = 60 * 1000;
+
+  const COLS = {
+    numero: ["nº", "no", "numero", "número", "n°", "os", "ordem", "id"],
+    ponto: ["ponto", "local", "nome do ponto"],
+    endereco: ["endereço", "endereco", "logradouro", "rua"],
+    ambiente: ["ambiente"],
+    praca: ["praça", "praca", "uf", "regional"],
+    area: ["área de trabalho", "area de trabalho", "área", "area"],
+    nivel: ["nível", "nivel", "n1/n2/n3", "level"],
+    criacao: ["data de criação", "data de criacao", "abertura", "data abertura", "data de abertura", "criação", "criacao"]
+  };
+
+  const $ = (id) => document.getElementById(id);
+  const normStr = (v)=> (v ?? "").toString().trim();
+  const normKey = (s)=> normStr(s).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/\s+/g," ").trim();
+  const yieldToUI = ()=> new Promise(r=>setTimeout(r,0));
+
+  let rowsAll = [];
+  let rowsFiltered = [];
+  let refreshTimer = null;
+
+  function setLoading(on, msg="Lendo arquivo", prog=null){
+    $("overlay").classList.toggle("show", !!on);
+    $("overlayMsg").textContent = msg;
+    $("overlayProg").textContent = (prog==null) ? "" : `${prog}%`;
+    $("pickBtn").disabled = !!on;
+    $("resetBtn").disabled = !!on;
+  }
+
+  function disableFilters(disabled){
+    $("pracaSelect").disabled = disabled;
+    $("ambienteSelect").disabled = disabled;
+    $("areaSelect").disabled = disabled;
+    $("searchInput").disabled = disabled;
+    $("exportDetalhadoBtn").disabled = disabled;
+    $("exportResumoBtn").disabled = disabled;
+  }
+
+  function hoursDiff(fromDate, toDate){
+    return (toDate.getTime() - fromDate.getTime()) / 36e5;
+  }
+
+  function getBucket(hours){
+    if (hours == null) return "Sem data";
+    if (hours < WARN_FROM_HOURS) return "Dentro do SLA";
+    if (hours < SLA_HOURS) return "Próximo do vencimento";
+    return "Estourado";
+  }
+
+  function fmtDate(d){
+    if (!d) return "—";
+    return new Intl.DateTimeFormat("pt-BR", {
+      day:"2-digit", month:"2-digit", year:"numeric",
+      hour:"2-digit", minute:"2-digit"
+    }).format(d);
+  }
+
+  function escapeHtml(str){
+    return normStr(str)
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&#039;");
+  }
+
+  function statusClass(s){
+    if (s === "Dentro do SLA") return "good";
+    if (s === "Próximo do vencimento") return "warn";
+    if (s === "Estourado") return "bad";
+    return "soft";
+  }
+
+  function unique(arr){
+    return Array.from(new Set(arr.filter(v=>normStr(v)!=="")));
+  }
+
+  function populateFilter(sel, values, allLabel, keepValue = ""){
+    sel.innerHTML = "";
+    const o = document.createElement("option");
+    o.value = "";
+    o.textContent = allLabel;
+    sel.appendChild(o);
+    values.forEach(v => {
+      const op = document.createElement("option");
+      op.value = v;
+      op.textContent = v;
+      sel.appendChild(op);
+    });
+    if (["", ...values].includes(keepValue)) sel.value = keepValue;
+  }
+
+  function groupBy(arr, keyFn){
+    const m = new Map();
+    for (const x of arr){
+      const k = keyFn(x);
+      if (!m.has(k)) m.set(k, []);
+      m.get(k).push(x);
+    }
+    return m;
+  }
+
+  function parseDateCell(val){
+    if (val == null || val === "") return null;
+    if (val instanceof Date && !isNaN(val)) return val;
+
+    if (typeof val === "number" && typeof XLSX !== "undefined"){
+      const o = XLSX.SSF.parse_date_code(val);
+      if (!o) return null;
+      return new Date(o.y, o.m - 1, o.d, o.H || 0, o.M || 0, o.S || 0);
+    }
+
+    const s = normStr(val);
+    const br = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
+    if (br){
+      const dd = parseInt(br[1], 10);
+      const mm = parseInt(br[2], 10) - 1;
+      const yy = parseInt(br[3], 10);
+      const yyyy = yy < 100 ? 2000 + yy : yy;
+      const HH = br[4] ? parseInt(br[4], 10) : 0;
+      const MM = br[5] ? parseInt(br[5], 10) : 0;
+      const SS = br[6] ? parseInt(br[6], 10) : 0;
+      const d = new Date(yyyy, mm, dd, HH, MM, SS);
+      return isNaN(d) ? null : d;
+    }
+
+    const iso = new Date(s);
+    return isNaN(iso) ? null : iso;
+  }
+
+  function scoreHeaderRow(row){
+    const normalized = row.map(normKey);
+    let score = 0;
+    for (const aliases of Object.values(COLS)){
+      if (aliases.some(a => normalized.includes(normKey(a)))) score += 1;
+    }
+    return score;
+  }
+
+  function detectHeaderRow(ws, maxRows = 80){
+    const aoa = XLSX.utils.sheet_to_json(ws, { header:1, defval:"", raw:true, range:0 });
+    const limit = Math.min(maxRows, aoa.length);
+    let best = { row: 0, score: -1 };
+    for (let r = 0; r < limit; r++){
+      const score = scoreHeaderRow(aoa[r] || []);
+      if (score > best.score) best = { row: r, score };
+    }
+    return best;
+  }
+
+  function mapColumns(headers){
+    const out = {};
+    const normalized = headers.map(normKey);
+    for (const [key, aliases] of Object.entries(COLS)){
+      const idx = normalized.findIndex(h => aliases.some(a => h === normKey(a)));
+      if (idx >= 0) out[key] = headers[idx];
+    }
+    return out;
+  }
+
+  function chooseBestSheet(wb){
+    let best = null;
+    for (const name of wb.SheetNames){
+      const ws = wb.Sheets[name];
+      const headerInfo = detectHeaderRow(ws, 80);
+      const json = XLSX.utils.sheet_to_json(ws, { defval:null, raw:true, range:headerInfo.row });
+      const headers = Object.keys(json[0] || {});
+      const mapping = mapColumns(headers);
+      const requiredHits = Object.keys(mapping).length;
+      const rows = json.length;
+      const score = requiredHits * 1000 + rows;
+      if (!best || score > best.score){
+        best = { name, ws, headerRow: headerInfo.row, headerScore: headerInfo.score, mapping, headers, rows, score };
+      }
+    }
+    return best;
+  }
+
+  function startAutoRefresh(){
+    stopAutoRefresh();
+    refreshTimer = setInterval(() => {
+      if (rowsAll.length) applyFiltersAndRender({ keepFilterOptions: true });
+    }, REFRESH_MS);
+  }
+
+  function stopAutoRefresh(){
+    if (refreshTimer){
+      clearInterval(refreshTimer);
+      refreshTimer = null;
+    }
+  }
+
+  function debounce(fn, wait = 180){
+    let t = null;
+    return (...args) => {
+      clearTimeout(t);
+      t = setTimeout(() => fn(...args), wait);
+    };
+  }
+
+  const fileInput = $("fileInput");
+  $("pickBtn").addEventListener("click", ()=> fileInput.click());
+  $("resetBtn").addEventListener("click", resetAll);
+  $("dropZone").addEventListener("click", ()=> fileInput.click());
+  $("dropZone").addEventListener("keydown", (e)=>{
+    if (e.key === "Enter" || e.key === " "){
+      e.preventDefault();
+      fileInput.click();
+    }
+  });
+
+  fileInput.addEventListener("change", (e)=>{
+    const f = e.target.files && e.target.files[0];
+    if (f) handleFile(f);
+  });
+
+  const dropZone = $("dropZone");
+  ["dragenter","dragover"].forEach(evt => dropZone.addEventListener(evt, (e)=>{
+    e.preventDefault(); e.stopPropagation();
+    dropZone.style.borderColor = "rgba(240,90,34,0.8)";
+  }));
+  ["dragleave","drop"].forEach(evt => dropZone.addEventListener(evt, (e)=>{
+    e.preventDefault(); e.stopPropagation();
+    dropZone.style.borderColor = "rgba(51,51,51,1)";
+  }));
+  dropZone.addEventListener("drop", (e)=>{
+    const f = e.dataTransfer.files && e.dataTransfer.files[0];
+    if (f) handleFile(f);
+  });
+
+  ["pracaSelect","ambienteSelect","areaSelect"].forEach(id => $(id).addEventListener("change", ()=> applyFiltersAndRender()));
+  $("searchInput").addEventListener("input", debounce(() => applyFiltersAndRender()));
+  $("exportDetalhadoBtn").addEventListener("click", exportDetalhadoXlsx);
+  $("exportResumoBtn").addEventListener("click", exportResumoPracaXlsx);
+
+  function resetAll(){
+    stopAutoRefresh();
+    rowsAll = [];
+    rowsFiltered = [];
+    fileInput.value = "";
+    $("fileInfo").textContent = "Nenhum arquivo carregado.";
+    $("debugInfo").style.display = "none";
+    $("pracaSelect").value = "";
+    $("ambienteSelect").value = "";
+    $("areaSelect").value = "";
+    $("searchInput").value = "";
+    disableFilters(true);
+    renderAll();
+  }
+
+  async function handleFile(file){
+    if (typeof XLSX === "undefined"){
+      alert("A biblioteca XLSX não carregou. Se a internet/CDN estiver bloqueada, use uma cópia local do xlsx.full.min.js.");
+      return;
+    }
+
+    $("fileInfo").textContent = `Carregado: ${file.name}`;
+    $("debugInfo").style.display = "none";
+    setLoading(true, "Lendo arquivo", 0);
+
+    try{
+      const buffer = await readFileWithProgress(file, (p)=> setLoading(true, "Lendo arquivo", p));
+      setLoading(true, "Abrindo planilha", 15);
+
+      const wb = XLSX.read(buffer, { type:"array", cellDates:true });
+      const best = chooseBestSheet(wb);
+
+      if (!best || best.headerScore < 4){
+        throw new Error("Não foi possível localizar um cabeçalho confiável na planilha.");
+      }
+
+      const json = XLSX.utils.sheet_to_json(best.ws, { defval:null, raw:true, range:best.headerRow });
+      if (!json.length) throw new Error("A aba escolhida está vazia.");
+
+      const mapping = best.mapping;
+      const missing = Object.keys(COLS).filter(k => !mapping[k]);
+      if (missing.length){
+        throw new Error(`Não encontrei as colunas necessárias: ${missing.join(", ")}`);
+      }
+
+      rowsAll = [];
+      const batchSize = 2000;
+      for (let i = 0; i < json.length; i += batchSize){
+        const batch = json.slice(i, i + batchSize);
+        for (const r of batch){
+          const nivelRaw = normStr(r[mapping.nivel]);
+          const nivelN = normKey(nivelRaw);
+          const isN1 = nivelN === "n1" || nivelN === "1" || nivelN.includes("n1") || nivelN.includes("n 1");
+          if (!isN1) continue;
+
+          rowsAll.push({
+            numero: normStr(r[mapping.numero]),
+            ponto: normStr(r[mapping.ponto]),
+            endereco: normStr(r[mapping.endereco]),
+            ambiente: normStr(r[mapping.ambiente]),
+            praca: normStr(r[mapping.praca]),
+            area: normStr(r[mapping.area]),
+            nivel: nivelRaw,
+            criacao: parseDateCell(r[mapping.criacao])
+          });
+        }
+
+        const prog = 15 + Math.floor((i / Math.max(1, json.length)) * 80);
+        setLoading(true, `Processando linhas da aba “${best.name}”`, Math.min(95, prog));
+        await yieldToUI();
+      }
+
+      setLoading(true, "Montando dashboard", 98);
+      disableFilters(false);
+      applyFiltersAndRender();
+      startAutoRefresh();
+
+      $("debugInfo").style.display = "block";
+      $("debugInfo").textContent = `Aba usada: ${best.name} · Cabeçalho na linha ${best.headerRow + 1} · Linhas N1: ${rowsAll.length}`;
+      setLoading(false);
+    } catch (err){
+      console.error(err);
+      setLoading(false);
+      alert(`Erro ao processar a planilha: ${err.message || err}`);
+    }
+  }
+
+  function readFileWithProgress(file, onProgress){
+    return new Promise((resolve, reject)=>{
+      const reader = new FileReader();
+      reader.onprogress = (e)=>{
+        if (e.lengthComputable){
+          const pct = Math.floor((e.loaded / e.total) * 100);
+          onProgress?.(pct);
+        }
+      };
+      reader.onload = ()=> resolve(reader.result);
+      reader.onerror = ()=> reject(reader.error);
+      reader.readAsArrayBuffer(file);
+    });
+  }
+
+  function enrichRows(rows){
+    const now = new Date();
+    return rows.map(r => {
+      const horasAberto = r.criacao ? hoursDiff(r.criacao, now) : null;
+      return {
+        ...r,
+        horasAberto,
+        statusSLA: getBucket(horasAberto)
+      };
+    });
+  }
+
+  function refreshFilterOptions(baseRows){
+    const currPraca = $("pracaSelect").value;
+    const currAmb = $("ambienteSelect").value;
+    const currArea = $("areaSelect").value;
+
+    populateFilter($("pracaSelect"), unique(baseRows.map(x=>x.praca)).sort((a,b)=>a.localeCompare(b, "pt-BR")), "Todas", currPraca);
+
+    const rowsForAmb = baseRows.filter(r => !$("pracaSelect").value || r.praca === $("pracaSelect").value);
+    populateFilter($("ambienteSelect"), unique(rowsForAmb.map(x=>x.ambiente)).sort((a,b)=>a.localeCompare(b, "pt-BR")), "Todos", currAmb);
+
+    const rowsForArea = rowsForAmb.filter(r => !$("ambienteSelect").value || r.ambiente === $("ambienteSelect").value);
+    populateFilter($("areaSelect"), unique(rowsForArea.map(x=>x.area)).sort((a,b)=>a.localeCompare(b, "pt-BR")), "Todas", currArea);
+  }
+
+  function applyFiltersAndRender(options = {}){
+    const { keepFilterOptions = false } = options;
+    const enriched = enrichRows(rowsAll);
+
+    if (!keepFilterOptions) refreshFilterOptions(enriched);
+
+    const fPraca = $("pracaSelect").value;
+    const fAmb = $("ambienteSelect").value;
+    const fArea = $("areaSelect").value;
+    const q = normKey($("searchInput").value);
+
+    rowsFiltered = enriched.filter(r => {
+      if (fPraca && r.praca !== fPraca) return false;
+      if (fAmb && r.ambiente !== fAmb) return false;
+      if (fArea && r.area !== fArea) return false;
+      if (q){
+        const hay = normKey(`${r.ponto} ${r.endereco} ${r.numero}`);
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+
+    renderAll();
+  }
+
+  function renderAll(){
+    renderKpis(rowsFiltered);
+    renderSummary(rowsFiltered);
+    renderCards(rowsFiltered);
+    renderTable(rowsFiltered);
+  }
+
+  function renderKpis(rows){
+    const total = rows.length;
+    const dentro = rows.filter(r => r.statusSLA === "Dentro do SLA").length;
+    const proximo = rows.filter(r => r.statusSLA === "Próximo do vencimento").length;
+    const estourado = rows.filter(r => r.statusSLA === "Estourado").length;
+
+    $("kpiTotal").textContent = total;
+    $("kpiDentro").textContent = dentro;
+    $("kpiProximo").textContent = proximo;
+    $("kpiEstourado").textContent = estourado;
+  }
+
+  function renderSummary(rows){
+    if (!rowsAll.length){
+      $("summaryNote").textContent = "Carregue uma planilha para ver o resumo.";
+      return;
+    }
+
+    const semData = rows.filter(r => r.statusSLA === "Sem data").length;
+    const msgSemData = semData ? ` · Sem data válida: ${semData}` : "";
+    $("summaryNote").textContent = `Linhas consideradas: ${rows.length} (após filtros). Atualizado em ${fmtDate(new Date())}${msgSemData}.`;
+  }
+
+  function renderCards(rows){
+    const host = $("cardsPraca");
+    host.innerHTML = "";
+
+    if (!rowsAll.length){
+      host.innerHTML = `<div class="muted">Sem dados.</div>`;
+      return;
+    }
+
+    const fPraca = $("pracaSelect").value;
+
+    if (fPraca){
+      const byDay = groupBy(rows, r => r.criacao ? r.criacao.toLocaleDateString("pt-BR") : "Sem data");
+      const sortedDays = Array.from(byDay.keys()).sort((a,b) => {
+        if (a === "Sem data") return 1;
+        if (b === "Sem data") return -1;
+        const [da, ma, ya] = a.split("/").map(Number);
+        const [db, mb, yb] = b.split("/").map(Number);
+        return new Date(ya, ma - 1, da) - new Date(yb, mb - 1, db);
       });
 
-      $('kpiTotal').textContent = filtered.length;
-      $('kpiDentro').textContent = filtered.filter(f => f.statusSLA === "Dentro do SLA").length;
-      $('kpiProximo').textContent = filtered.filter(f => f.statusSLA === "Próximo do vencimento").length;
-      $('kpiEstourado').textContent = filtered.filter(f => f.statusSLA === "Estourado").length;
-
-      $('tbody').innerHTML = filtered.sort((a,b) => (b.horas || 0) - (a.horas || 0)).slice(0, 200).map(d => `
-        <tr>
-          <td><b>${d.os}</b></td><td>${d.praca}</td><td>${d.ponto}</td>
-          <td>${d.abertura ? d.abertura.toLocaleString('pt-BR') : '---'}</td>
-          <td>${d.horas !== null ? d.horas + 'h' : '---'}</td>
-          <td><span class="status ${d.statusSLA === "Dentro do SLA" ? "good" : d.statusSLA === "Estourado" ? "bad" : "warn"}">${d.statusSLA}</span></td>
-        </tr>`).join("");
-      
-      const reg = {}; filtered.forEach(d => { if(!reg[d.praca]) reg[d.praca] = {t:0, e:0}; reg[d.praca].t++; if(d.statusSLA === "Estourado") reg[d.praca].e++; });
-      $('cardsPraca').innerHTML = Object.entries(reg).map(([n, i]) => `<div class="mini-card"><h3>${n}</h3><div class="mini-row"><span>Total</span><b>${i.t}</b></div><div class="mini-row"><span>Críticos</span><b style="color:var(--bad)">${i.e}</b></div></div>`).join("");
+      for (const dia of sortedDays){
+        const list = byDay.get(dia);
+        const el = document.createElement("div");
+        el.className = "card mini";
+        el.innerHTML = `
+          <h3>${escapeHtml(dia)}</h3>
+          <div class="meta">Chamados no dia: <b>${list.length}</b></div>
+          <div class="line"><span><span class="dot good"></span> Dentro</span><b>${list.filter(r=>r.statusSLA === "Dentro do SLA").length}</b></div>
+          <div class="line"><span><span class="dot warn"></span> Próximo</span><b>${list.filter(r=>r.statusSLA === "Próximo do vencimento").length}</b></div>
+          <div class="line"><span><span class="dot bad"></span> Estourado</span><b>${list.filter(r=>r.statusSLA === "Estourado").length}</b></div>
+          <div class="line"><span><span class="dot soft"></span> Sem data</span><b>${list.filter(r=>r.statusSLA === "Sem data").length}</b></div>
+        `;
+        host.appendChild(el);
+      }
+      return;
     }
 
-    function exportarExcel() {
-      const ws = XLSX.utils.json_to_sheet(rowsAll);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Relatorio");
-      XLSX.writeFile(wb, "NOC_Report.xlsx");
+    const by = groupBy(rows, r => r.praca || "Sem Praça");
+    const pracas = Array.from(by.keys()).sort((a,b)=>a.localeCompare(b, "pt-BR"));
+
+    for (const pr of pracas){
+      const list = by.get(pr);
+      const worst = list.filter(r=>r.horasAberto != null).sort((a,b)=>b.horasAberto - a.horasAberto)[0];
+      const el = document.createElement("div");
+      el.className = "card mini";
+      el.innerHTML = `
+        <h3>${escapeHtml(pr)}</h3>
+        <div class="meta">Total: <b>${list.length}</b></div>
+        <div class="line"><span><span class="dot good"></span> Dentro</span><b>${list.filter(r=>r.statusSLA === "Dentro do SLA").length}</b></div>
+        <div class="line"><span><span class="dot warn"></span> Próximo</span><b>${list.filter(r=>r.statusSLA === "Próximo do vencimento").length}</b></div>
+        <div class="line"><span><span class="dot bad"></span> Estourado</span><b>${list.filter(r=>r.statusSLA === "Estourado").length}</b></div>
+        <div style="margin-top:10px; color:var(--muted); font-size:12px;">
+          Maior tempo: ${worst ? `<b>${Math.floor(worst.horasAberto)}h</b>` : "—"}
+        </div>
+      `;
+      host.appendChild(el);
     }
-  </script>
+  }
+
+  function renderTable(rows){
+    const tbody = $("tbody");
+
+    if (!rowsAll.length){
+      tbody.innerHTML = `<tr><td colspan="9" class="muted" style="text-align:center; padding:40px;">Carregue uma planilha para visualizar.</td></tr>`;
+      return;
+    }
+
+    if (!rows.length){
+      tbody.innerHTML = `<tr><td colspan="9" class="muted" style="text-align:center; padding:40px;">Nenhuma linha após filtros.</td></tr>`;
+      return;
+    }
+
+    const sorted = [...rows].sort((a,b)=>(b.horasAberto ?? -1) - (a.horasAberto ?? -1));
+    tbody.innerHTML = sorted.slice(0, 500).map(r => `
+      <tr>
+        <td>${escapeHtml(r.numero)}</td>
+        <td>${escapeHtml(r.praca)}</td>
+        <td>${escapeHtml(r.ambiente)}</td>
+        <td>${escapeHtml(r.area)}</td>
+        <td>${escapeHtml(r.ponto)}</td>
+        <td>${escapeHtml(r.endereco)}</td>
+        <td>${escapeHtml(fmtDate(r.criacao))}</td>
+        <td class="right">${r.horasAberto == null ? "—" : Math.floor(r.horasAberto)}</td>
+        <td><span class="status ${statusClass(r.statusSLA)}">${escapeHtml(r.statusSLA)}</span></td>
+      </tr>
+    `).join("");
+  }
+
+  function exportDetalhadoXlsx(){
+    if (typeof XLSX === "undefined"){
+      alert("Biblioteca XLSX não carregada.");
+      return;
+    }
+    if (!rowsFiltered.length){
+      alert("Não há linhas para exportar.");
+      return;
+    }
+
+    const data = rowsFiltered.map(r => ({
+      "Nº": r.numero,
+      "Ponto": r.ponto,
+      "Endereço": r.endereco,
+      "Ambiente": r.ambiente,
+      "Praça": r.praca,
+      "Área de Trabalho": r.area,
+      "Nível": r.nivel,
+      "Data de Criação": r.criacao ? fmtDate(r.criacao) : "",
+      "Horas em aberto": r.horasAberto == null ? "" : Math.floor(r.horasAberto),
+      "Status SLA": r.statusSLA
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Detalhado (filtrado)");
+    XLSX.writeFile(wb, buildExportName("Chamados_N1_Detalhado"));
+  }
+
+  function exportResumoPracaXlsx(){
+    if (typeof XLSX === "undefined"){
+      alert("Biblioteca XLSX não carregada.");
+      return;
+    }
+    if (!rowsFiltered.length){
+      alert("Não há dados para exportar.");
+      return;
+    }
+
+    const byPraca = groupBy(rowsFiltered, r => r.praca || "Sem Praça");
+    const pracas = Array.from(byPraca.keys()).sort((a,b)=>a.localeCompare(b, "pt-BR"));
+    const resumo = pracas.map(pr => {
+      const list = byPraca.get(pr);
+      const pior = list.filter(r => r.horasAberto != null).sort((a,b)=>b.horasAberto - a.horasAberto)[0];
+      return {
+        "Praça": pr,
+        "Total": list.length,
+        "Dentro do SLA": list.filter(r=>r.statusSLA === "Dentro do SLA").length,
+        "Próximo do vencimento": list.filter(r=>r.statusSLA === "Próximo do vencimento").length,
+        "Estourado": list.filter(r=>r.statusSLA === "Estourado").length,
+        "Sem data": list.filter(r=>r.statusSLA === "Sem data").length,
+        "Maior tempo (h)": pior ? Math.floor(pior.horasAberto) : ""
+      };
+    });
+
+    const ws = XLSX.utils.json_to_sheet(resumo);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Resumo por praça");
+    XLSX.writeFile(wb, buildExportName("Chamados_N1_Resumo_Praca"));
+  }
+
+  function buildExportName(prefix){
+    const stamp = new Date();
+    const pad = n => String(n).padStart(2, "0");
+    return `${prefix}_${stamp.getFullYear()}-${pad(stamp.getMonth()+1)}-${pad(stamp.getDate())}_${pad(stamp.getHours())}${pad(stamp.getMinutes())}.xlsx`;
+  }
+
+  disableFilters(true);
+  renderAll();
+</script>
 </body>
 </html>
