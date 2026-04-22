@@ -7,6 +7,16 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
+  <!-- Leaflet (mapa) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+          integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+  <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+
   <style>
     /* --- CORES E TEMA ELETROMIDIA --- */
     :root {
@@ -146,6 +156,54 @@
 
     .muted { color: var(--muted); }
 
+    /* --- MAPA --- */
+    .map-header { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+    .map-header h2 { margin: 0; font-size: 14px; text-transform: uppercase; color: var(--accent); }
+    .map-modes { display: flex; gap: 4px; background: #0f0f0f; border: 1px solid var(--line); border-radius: 6px; padding: 3px; }
+    .map-modes button {
+      background: transparent; color: var(--muted); border: none; padding: 6px 12px;
+      border-radius: 4px; font-size: 11px; font-weight: 700; cursor: pointer; text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .map-modes button.active { background: var(--accent); color: #fff; }
+    .map-modes button:hover:not(.active) { color: var(--text); background: #1a1a1a; }
+    #map { height: 520px; width: 100%; border-radius: 6px; border: 1px solid var(--line); background: #0a0a0a; }
+    .map-status { font-size: 11px; color: var(--muted); margin-top: 8px; display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+    .map-legend { display: flex; gap: 14px; font-size: 11px; color: var(--muted); align-items: center; flex-wrap: wrap; }
+    .map-legend .lg { display: inline-flex; align-items: center; gap: 5px; }
+    .map-legend .lg::before { content: ""; width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+    .map-legend .lg.good::before { background: var(--good); }
+    .map-legend .lg.warn::before { background: var(--warn); }
+    .map-legend .lg.bad::before { background: var(--bad); }
+    .map-legend .lg.soft::before { background: var(--soft); }
+
+    /* Popup Leaflet estilizado */
+    .leaflet-popup-content-wrapper { background: #121212; color: #eee; border-radius: 8px; border: 1px solid var(--accent); }
+    .leaflet-popup-tip { background: #121212; border: 1px solid var(--accent); }
+    .leaflet-popup-content { margin: 10px 14px; font-size: 12px; line-height: 1.45; max-height: 320px; overflow: auto; }
+    .leaflet-popup-content strong { color: var(--accent); }
+    .leaflet-popup-content .ticket { border-top: 1px solid #222; padding: 6px 0; font-size: 11px; }
+    .leaflet-popup-content .ticket:first-of-type { border-top: none; }
+    .leaflet-popup-content .ticket .num { color: var(--accent); font-weight: 700; }
+    .leaflet-container a.leaflet-popup-close-button { color: #888; }
+
+    /* Marcador numerado customizado */
+    .addr-marker {
+      background: var(--bad); color: #fff; border-radius: 50%;
+      width: 30px; height: 30px; display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700; border: 2px solid #fff;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+    }
+    .addr-marker.good { background: var(--good); }
+    .addr-marker.warn { background: var(--warn); }
+    .addr-marker.soft { background: var(--soft); }
+
+    .geocode-bar {
+      margin-top: 8px; height: 4px; background: #1a1a1a; border-radius: 2px; overflow: hidden; display: none;
+    }
+    .geocode-bar.active { display: block; }
+    .geocode-bar > div { height: 100%; background: var(--accent); width: 0%; transition: width 0.2s; }
+
     @media (max-width: 1000px) { main { grid-template-columns: 1fr; } }
   </style>
 </head>
@@ -227,6 +285,28 @@
     </div>
 
     <div class="card">
+      <div class="map-header">
+        <h2>Mapa de Chamados em Aberto</h2>
+        <div class="map-modes" id="mapModes">
+          <button type="button" data-mode="markers" class="active">Marcadores</button>
+          <button type="button" data-mode="clusters">Clusters</button>
+          <button type="button" data-mode="heat">Heatmap</button>
+        </div>
+      </div>
+      <div id="map"></div>
+      <div class="geocode-bar" id="geocodeBar"><div id="geocodeBarFill"></div></div>
+      <div class="map-status">
+        <div class="map-legend">
+          <span class="lg bad">Estourado (SLA ≥ 48h)</span>
+          <span class="lg warn">Próximo (≥ 36h)</span>
+          <span class="lg good">No prazo</span>
+          <span class="lg soft">Sem data</span>
+        </div>
+        <div id="mapStatus">Carregue uma planilha para ver o mapa.</div>
+      </div>
+    </div>
+
+    <div class="card">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
         <h2 style="margin:0; font-size:14px; text-transform:uppercase; color:var(--accent);">Fila de Atendimento</h2>
         <div class="note" id="summaryNote" style="margin:0;">Carregue uma planilha para ver o resumo.</div>
@@ -270,12 +350,21 @@
     numero: ["nº", "no", "numero", "número", "n°", "os", "ordem", "id"],
     ponto: ["ponto", "local", "nome do ponto"],
     endereco: ["endereço", "endereco", "logradouro", "rua"],
+    bairro: ["bairro"],
+    cidade: ["cidade", "município", "municipio"],
+    estado: ["estado", "uf"],
     ambiente: ["ambiente"],
-    praca: ["praça", "praca", "uf", "regional"],
+    praca: ["praça", "praca", "regional"],
     area: ["área de trabalho", "area de trabalho", "área", "area"],
     nivel: ["nível", "nivel", "n1/n2/n3", "level"],
+    prioridade: ["é prioridade?", "e prioridade?", "prioridade", "é prioridade", "e prioridade"],
+    status: ["status"],
+    tecnico: ["técnico", "tecnico"],
     criacao: ["data de criação", "data de criacao", "abertura", "data abertura", "data de abertura", "criação", "criacao"]
   };
+
+  // Campos obrigatórios para pontuar a melhor aba / validar o cabeçalho
+  const REQUIRED_COLS = ["numero", "ponto", "endereco", "ambiente", "praca", "area", "nivel", "criacao"];
 
   const $ = (id) => document.getElementById(id);
   const normStr = (v)=> (v ?? "").toString().trim();
@@ -398,7 +487,8 @@
   function scoreHeaderRow(row){
     const normalized = row.map(normKey);
     let score = 0;
-    for (const aliases of Object.values(COLS)){
+    for (const key of REQUIRED_COLS){
+      const aliases = COLS[key] || [];
       if (aliases.some(a => normalized.includes(normKey(a)))) score += 1;
     }
     return score;
@@ -540,7 +630,7 @@
       if (!json.length) throw new Error("A aba escolhida está vazia.");
 
       const mapping = best.mapping;
-      const missing = Object.keys(COLS).filter(k => !mapping[k]);
+      const missing = REQUIRED_COLS.filter(k => !mapping[k]);
       if (missing.length){
         throw new Error(`Não encontrei as colunas necessárias: ${missing.join(", ")}`);
       }
@@ -559,10 +649,16 @@
             numero: normStr(r[mapping.numero]),
             ponto: normStr(r[mapping.ponto]),
             endereco: normStr(r[mapping.endereco]),
+            bairro: mapping.bairro ? normStr(r[mapping.bairro]) : "",
+            cidade: mapping.cidade ? normStr(r[mapping.cidade]) : "",
+            estado: mapping.estado ? normStr(r[mapping.estado]) : "",
             ambiente: normStr(r[mapping.ambiente]),
             praca: normStr(r[mapping.praca]),
             area: normStr(r[mapping.area]),
             nivel: nivelRaw,
+            prioridade: mapping.prioridade ? normStr(r[mapping.prioridade]) : "",
+            status: mapping.status ? normStr(r[mapping.status]) : "",
+            tecnico: mapping.tecnico ? normStr(r[mapping.tecnico]) : "",
             criacao: parseDateCell(r[mapping.criacao])
           });
         }
@@ -658,6 +754,7 @@
     renderSummary(rowsFiltered);
     renderCards(rowsFiltered);
     renderTable(rowsFiltered);
+    renderMap(rowsFiltered);
   }
 
   function renderKpis(rows){
@@ -838,6 +935,409 @@
     const pad = n => String(n).padStart(2, "0");
     return `${prefix}_${stamp.getFullYear()}-${pad(stamp.getMonth()+1)}-${pad(stamp.getDate())}_${pad(stamp.getHours())}${pad(stamp.getMinutes())}.xlsx`;
   }
+
+  // ============================================================
+  // MAPA — geocodificação (Nominatim) + 3 modos (markers/clusters/heat)
+  // ============================================================
+
+  const GEOCODE_CACHE_KEY = "eletromidia_geocode_cache_v1";
+  const GEOCODE_MIN_INTERVAL_MS = 1100; // política do Nominatim: máx. 1 req/s
+  // Centro aproximado de São Paulo (fallback quando o mapa ainda não tem pontos)
+  const DEFAULT_CENTER = [-23.5505, -46.6333];
+  const DEFAULT_ZOOM = 11;
+
+  let map = null;
+  let markerLayer = null;      // L.layerGroup() — modo "markers"
+  let clusterLayer = null;     // L.markerClusterGroup() — modo "clusters"
+  let heatLayer = null;        // L.heatLayer — modo "heat"
+  let currentMapMode = "markers";
+  let mapModeSwitching = false;
+  let geocodeCache = loadGeocodeCache();
+  let geocodeInFlight = null;  // Promise que resolve quando a rodada atual termina
+  let geocodeQueueToken = 0;   // invalidate running geocode when filters mudam rápido
+  let currentMapGroupsSig = "";  // assinatura dos grupos atualmente renderizados no mapa
+  let currentMapGroups = null;   // referência aos grupos atuais (compartilhada com a geocodificação em andamento)
+
+  function loadGeocodeCache(){
+    try {
+      const raw = localStorage.getItem(GEOCODE_CACHE_KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch { return {}; }
+  }
+
+  function saveGeocodeCache(){
+    try {
+      localStorage.setItem(GEOCODE_CACHE_KEY, JSON.stringify(geocodeCache));
+    } catch (e) {
+      console.warn("Não foi possível salvar o cache de geocodificação:", e);
+    }
+  }
+
+  function buildAddressQuery(r){
+    // Monta a melhor consulta possível a partir das colunas disponíveis
+    const parts = [];
+    if (r.endereco) parts.push(r.endereco);
+    if (r.bairro) parts.push(r.bairro);
+    if (r.cidade) parts.push(r.cidade);
+    if (r.estado) parts.push(r.estado);
+    parts.push("Brasil");
+    return parts.join(", ");
+  }
+
+  function addressKey(r){
+    // Chave canônica do endereço para agrupar + cachear
+    return normKey(`${r.endereco}|${r.bairro}|${r.cidade}|${r.estado}`);
+  }
+
+  function groupByAddress(rows){
+    const groups = new Map();
+    for (const r of rows){
+      if (!r.endereco) continue;
+      const key = addressKey(r);
+      if (!groups.has(key)){
+        groups.set(key, {
+          key,
+          endereco: r.endereco,
+          bairro: r.bairro,
+          cidade: r.cidade,
+          estado: r.estado,
+          query: buildAddressQuery(r),
+          tickets: []
+        });
+      }
+      groups.get(key).tickets.push(r);
+    }
+    return Array.from(groups.values());
+  }
+
+  function worstStatusOfGroup(group){
+    // Ordem de severidade: Estourado > Próximo > Dentro > Sem data
+    const order = { "Estourado": 3, "Próximo do vencimento": 2, "Dentro do SLA": 1, "Sem data": 0 };
+    let worst = "Sem data";
+    for (const t of group.tickets){
+      if ((order[t.statusSLA] ?? 0) > (order[worst] ?? 0)) worst = t.statusSLA;
+    }
+    return worst;
+  }
+
+  async function geocodeQuery(query){
+    // Consulta Nominatim; retorna {lat, lon} ou null
+    const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=br&q=${encodeURIComponent(query)}`;
+    try {
+      const resp = await fetch(url, {
+        headers: { "Accept": "application/json", "Accept-Language": "pt-BR" }
+      });
+      if (!resp.ok) return null;
+      const data = await resp.json();
+      if (Array.isArray(data) && data.length){
+        return { lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) };
+      }
+      return null;
+    } catch (e) {
+      console.warn("Falha geocode:", query, e);
+      return null;
+    }
+  }
+
+  function setGeocodeProgress(done, total, msg){
+    const bar = $("geocodeBar");
+    const fill = $("geocodeBarFill");
+    const status = $("mapStatus");
+    if (total > 0 && done < total){
+      bar.classList.add("active");
+      fill.style.width = `${Math.floor((done / total) * 100)}%`;
+      status.textContent = msg || `Geocodificando endereços: ${done}/${total}`;
+    } else {
+      bar.classList.remove("active");
+      fill.style.width = "0%";
+    }
+  }
+
+  async function ensureGeocoded(groups, token){
+    // Para cada grupo, preenche lat/lon do cache, e consulta Nominatim para os que faltam.
+    const pending = [];
+    for (const g of groups){
+      const cached = geocodeCache[g.key];
+      if (cached && cached.lat != null && cached.lon != null){
+        g.lat = cached.lat; g.lon = cached.lon;
+      } else if (cached && cached.failed){
+        g.lat = null; g.lon = null;
+      } else {
+        pending.push(g);
+      }
+    }
+
+    if (!pending.length) return;
+
+    const total = pending.length;
+    let done = 0;
+    setGeocodeProgress(0, total, `Geocodificando ${total} endereço(s)...`);
+
+    let lastReq = 0;
+    for (const g of pending){
+      if (token !== geocodeQueueToken) return; // cancelado por novo filtro/arquivo
+
+      const now = Date.now();
+      const wait = Math.max(0, GEOCODE_MIN_INTERVAL_MS - (now - lastReq));
+      if (wait > 0) await new Promise(r => setTimeout(r, wait));
+      lastReq = Date.now();
+
+      const coords = await geocodeQuery(g.query);
+      if (coords){
+        g.lat = coords.lat; g.lon = coords.lon;
+        geocodeCache[g.key] = { lat: coords.lat, lon: coords.lon, ts: Date.now() };
+      } else {
+        geocodeCache[g.key] = { failed: true, ts: Date.now() };
+      }
+      done += 1;
+      setGeocodeProgress(done, total);
+
+      // Salva cache a cada 10 para não perder progresso
+      if (done % 10 === 0) saveGeocodeCache();
+
+      // Atualiza o mapa incrementalmente a cada 15 geocodes
+      if (done % 15 === 0 || done === total){
+        drawMapLayers(groups);
+      }
+    }
+    saveGeocodeCache();
+    setGeocodeProgress(total, total);
+    setTimeout(() => $("geocodeBar").classList.remove("active"), 400);
+  }
+
+  function ensureMapInit(){
+    if (map) return;
+    map = L.map("map", {
+      center: DEFAULT_CENTER,
+      zoom: DEFAULT_ZOOM,
+      preferCanvas: true
+    });
+    // CartoDB Voyager — grátis, sem chave, e funciona mesmo abrindo o HTML direto (file://),
+    // diferente do tile.openstreetmap.org que passou a exigir header Referer e bloqueia com 403 em file://.
+    L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
+      maxZoom: 19,
+      subdomains: "abcd",
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+    }).addTo(map);
+
+    markerLayer = L.layerGroup().addTo(map);
+    clusterLayer = L.markerClusterGroup({
+      chunkedLoading: true,
+      showCoverageOnHover: false,
+      maxClusterRadius: 50
+    });
+    heatLayer = L.heatLayer([], {
+      radius: 28, blur: 22, maxZoom: 15,
+      gradient: { 0.2: "#22c55e", 0.5: "#f59e0b", 0.8: "#ef4444" }
+    });
+  }
+
+  function statusClassForMarker(statusSLA){
+    if (statusSLA === "Dentro do SLA") return "good";
+    if (statusSLA === "Próximo do vencimento") return "warn";
+    if (statusSLA === "Estourado") return "bad";
+    return "soft";
+  }
+
+  function buildMarkerIcon(count, cls){
+    return L.divIcon({
+      className: "",
+      html: `<div class="addr-marker ${cls}">${count > 99 ? "99+" : count}</div>`,
+      iconSize: [30, 30],
+      iconAnchor: [15, 15]
+    });
+  }
+
+  function buildPopupHtml(g){
+    const worst = worstStatusOfGroup(g);
+    const worstCls = statusClassForMarker(worst);
+    const header = `
+      <div><strong>${escapeHtml(g.endereco)}</strong></div>
+      <div style="color:#aaa; font-size:11px; margin-bottom:6px;">
+        ${escapeHtml([g.bairro, g.cidade, g.estado].filter(Boolean).join(" · "))}
+      </div>
+      <div style="font-size:11px; margin-bottom:8px;">
+        Chamados no endereço: <b>${g.tickets.length}</b>
+        · Pior SLA: <span class="status ${worstCls}">${escapeHtml(worst)}</span>
+      </div>
+    `;
+    const tickets = g.tickets
+      .slice()
+      .sort((a,b) => (b.horasAberto ?? -1) - (a.horasAberto ?? -1))
+      .map(t => {
+        const sc = statusClassForMarker(t.statusSLA);
+        const horas = t.horasAberto == null ? "—" : `${Math.floor(t.horasAberto)}h`;
+        const prio = (t.prioridade && normKey(t.prioridade) === "sim")
+          ? ' <span class="status bad" style="margin-left:4px;">PRIO</span>' : "";
+        return `
+          <div class="ticket">
+            <div>
+              <span class="num">#${escapeHtml(t.numero)}</span>
+              <span class="status ${sc}" style="margin-left:6px;">${escapeHtml(t.statusSLA)}</span>${prio}
+            </div>
+            <div style="color:#bbb;">${escapeHtml(t.ponto)}</div>
+            <div style="color:#888; font-size:10px;">
+              ${escapeHtml(t.praca)} · ${escapeHtml(t.area)} · Aberto há ${horas}
+              ${t.tecnico ? ` · Téc.: ${escapeHtml(t.tecnico)}` : ""}
+            </div>
+          </div>
+        `;
+      })
+      .join("");
+    return header + tickets;
+  }
+
+  function drawMapLayers(groups){
+    ensureMapInit();
+    markerLayer.clearLayers();
+    clusterLayer.clearLayers();
+    heatLayer.setLatLngs([]);
+
+    const bounds = [];
+    const heatPoints = [];
+
+    for (const g of groups){
+      if (g.lat == null || g.lon == null) continue;
+      const worst = worstStatusOfGroup(g);
+      const cls = statusClassForMarker(worst);
+      const icon = buildMarkerIcon(g.tickets.length, cls);
+      const popupHtml = buildPopupHtml(g);
+
+      const m1 = L.marker([g.lat, g.lon], { icon }).bindPopup(popupHtml, { maxWidth: 340 });
+      markerLayer.addLayer(m1);
+
+      // Para o cluster, usamos markers simples (divIcon também, mas sem contagem — o cluster já conta)
+      const m2 = L.marker([g.lat, g.lon], {
+        icon: L.divIcon({
+          className: "",
+          html: `<div class="addr-marker ${cls}" style="width:22px; height:22px; font-size:10px;">${g.tickets.length}</div>`,
+          iconSize: [22, 22], iconAnchor: [11, 11]
+        })
+      }).bindPopup(popupHtml, { maxWidth: 340 });
+      clusterLayer.addLayer(m2);
+
+      // Heat: peso = qtd de chamados × severidade
+      const sevWeight = { "Estourado": 3, "Próximo do vencimento": 2, "Dentro do SLA": 1, "Sem data": 0.5 }[worst] || 1;
+      heatPoints.push([g.lat, g.lon, g.tickets.length * sevWeight]);
+
+      bounds.push([g.lat, g.lon]);
+    }
+
+    heatLayer.setLatLngs(heatPoints);
+
+    // Ajusta viewport apenas na primeira vez por filtro
+    if (bounds.length && !map._fittedOnce){
+      try { map.fitBounds(bounds, { padding: [30, 30], maxZoom: 14 }); } catch {}
+      map._fittedOnce = true;
+    }
+  }
+
+  function applyMapMode(mode){
+    ensureMapInit();
+    if (markerLayer) map.removeLayer(markerLayer);
+    if (clusterLayer) map.removeLayer(clusterLayer);
+    if (heatLayer) map.removeLayer(heatLayer);
+
+    if (mode === "markers") map.addLayer(markerLayer);
+    else if (mode === "clusters") map.addLayer(clusterLayer);
+    else if (mode === "heat") map.addLayer(heatLayer);
+
+    currentMapMode = mode;
+    for (const btn of document.querySelectorAll("#mapModes button")){
+      btn.classList.toggle("active", btn.dataset.mode === mode);
+    }
+  }
+
+  async function renderMap(rows){
+    ensureMapInit();
+
+    if (!rows || !rows.length){
+      if (markerLayer) markerLayer.clearLayers();
+      if (clusterLayer) clusterLayer.clearLayers();
+      if (heatLayer) heatLayer.setLatLngs([]);
+      $("mapStatus").textContent = rowsAll.length
+        ? "Nenhum chamado após os filtros atuais."
+        : "Carregue uma planilha para ver o mapa.";
+      currentMapGroupsSig = "";
+      currentMapGroups = null;
+      return;
+    }
+
+    const groups = groupByAddress(rows);
+    const withEndereco = groups.length;
+    const sig = groups.map(g => g.key).sort().join("|");
+
+    // Se o conjunto de endereços é idêntico ao que já está sendo renderizado/geocodificado,
+    // não reinicia — só atualiza a contagem de chamados (que pode mudar com auto-refresh).
+    // Isso evita que o auto-refresh a cada 60s cancele a geocodificação em andamento.
+    if (sig === currentMapGroupsSig && currentMapGroups){
+      const okNow = currentMapGroups.filter(g => g.lat != null).length;
+      const pendingNow = currentMapGroups.filter(g => {
+        const c = geocodeCache[g.key];
+        return !(c && (c.lat != null || c.failed));
+      }).length;
+      const failedNow = currentMapGroups.length - okNow - pendingNow;
+      if (pendingNow === 0){
+        $("mapStatus").textContent = `Mapa: ${okNow} endereço(s) plotado(s), ${rows.length} chamado(s)${failedNow ? `, ${failedNow} sem coordenadas` : ""}.`;
+      } else {
+        $("mapStatus").textContent = `Mapa: ${okNow} plotado(s). Geocodificando ${pendingNow} novo(s) endereço(s)...`;
+      }
+      return;
+    }
+
+    currentMapGroupsSig = sig;
+    currentMapGroups = groups;
+
+    // Popula lat/lon a partir do cache ANTES de desenhar, para render imediato quando tudo está em cache.
+    const pending = [];
+    for (const g of groups){
+      const cached = geocodeCache[g.key];
+      if (cached && cached.lat != null && cached.lon != null){
+        g.lat = cached.lat; g.lon = cached.lon;
+      } else if (cached && cached.failed){
+        g.lat = null; g.lon = null;
+      } else {
+        pending.push(g);
+      }
+    }
+
+    // Reset do fit do mapa quando os filtros mudam (para reenquadrar)
+    map._fittedOnce = false;
+
+    // Desenha imediatamente o que já está em cache
+    drawMapLayers(groups);
+    applyMapMode(currentMapMode);
+
+    const okNow = groups.filter(g => g.lat != null).length;
+    const failedNow = withEndereco - okNow - pending.length;
+
+    if (pending.length === 0){
+      $("mapStatus").textContent = `Mapa: ${okNow} endereço(s) plotado(s), ${rows.length} chamado(s)${failedNow ? `, ${failedNow} sem coordenadas` : ""}.`;
+    } else {
+      $("mapStatus").textContent = `Mapa: ${okNow} plotado(s). Geocodificando ${pending.length} novo(s) endereço(s)...`;
+    }
+
+    // Cancela rodada anterior (se houver) e inicia nova
+    geocodeQueueToken += 1;
+    const token = geocodeQueueToken;
+    if (pending.length === 0){
+      geocodeInFlight = Promise.resolve();
+      return;
+    }
+    geocodeInFlight = ensureGeocoded(groups, token).then(() => {
+      if (token !== geocodeQueueToken) return;
+      drawMapLayers(groups);
+      applyMapMode(currentMapMode);
+      const ok = groups.filter(g => g.lat != null).length;
+      const failed = groups.length - ok;
+      $("mapStatus").textContent = `Mapa: ${ok} endereço(s) plotado(s), ${rows.length} chamado(s)${failed ? `, ${failed} sem coordenadas` : ""}.`;
+    });
+  }
+
+  // Listeners dos modos do mapa
+  document.querySelectorAll("#mapModes button").forEach(btn => {
+    btn.addEventListener("click", () => applyMapMode(btn.dataset.mode));
+  });
 
   disableFilters(true);
   renderAll();
